@@ -1,0 +1,2125 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Калькулятор TCO Штурвала – сколько стоит Kubernetes в проде</title>
+<meta name="description" content="Посчитайте, сколько стоит Kubernetes-платформа в проде при своей сборке и какой бюджет высвобождает Штурвал.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Калькулятор TCO Штурвала – сколько стоит Kubernetes в проде">
+<meta property="og:description" content="Своя сборка, своя платформа или Штурвал – сравните на своих цифрах. Методика и коэффициенты открыты.">
+<meta property="og:url" content="https://shturval-tech.github.io/shturval-tco/">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<link rel="icon" href="assets/shturval-sign.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }
+:root {
+  color-scheme: dark;
+  --black: #000000;
+  --white: #ffffff;
+  --shturval: #1cf2de;
+  --shturval-16: rgba(28, 242, 222, .16);
+  --surface: var(--black);
+  --surface-raised: #171717;
+  --surface-frame: #252525;
+  --surface-glass: rgba(255, 255, 255, 0.1);
+  --ink: var(--white);
+  --ink-muted: #b9b9b9;
+  --guide: #919191;
+  --line: #454545;
+  --bar-other: #6b6b6b;
+  --on-product: var(--black);
+  --focus: var(--white);
+  --note: #ffcb70;
+  --note-soft: rgba(255, 203, 112, .08);
+  --f-sans: "Montserrat", Verdana, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 72px;
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 20px;
+  --glow-shturval: 0 0 64px 8px rgba(28, 242, 222, 0.45);
+  --max: 1296px;
+  --oct: polygon(29.3% 0, 70.7% 0, 100% 29.3%, 100% 70.7%, 70.7% 100%, 29.3% 100%, 0 70.7%, 0 29.3%);
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; background: var(--surface); }
+body { margin: 0; background: var(--surface); color: var(--ink); font-family: var(--f-sans); font-weight: 500; font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+h1, h2, h3, h4 { font-family: var(--f-sans); font-weight: 700; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+b, strong { font-weight: 700; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+.wrap { width: 100%; max-width: var(--max); margin-inline: auto; padding-inline: var(--space-8); }
+@media (max-width: 1100px) { .wrap { padding-inline: var(--space-5); } }
+@media (max-width: 600px) { .wrap { padding-inline: var(--space-4); } }
+section { padding-block: 96px 0; scroll-margin-top: 72px; }
+@media (max-width: 700px) { section { padding-top: 64px; } }
+.sec-head { display: grid; gap: var(--space-4); margin-bottom: var(--space-7); }
+.eyebrow { font-size: clamp(18px, 1.8vw, 22px); line-height: 1.2; font-weight: 500; letter-spacing: .02em; text-transform: uppercase; color: var(--ink-muted); }
+.h2 { font-size: clamp(30px, 3.8vw, 48px); line-height: 1.1; font-weight: 700; max-width: 24ch; }
+.lead { color: var(--ink-muted); font-size: 18px; line-height: 1.5; max-width: 64ch; }
+.mono { font-family: var(--f-mono); }
+.overline { font-size: 12px; line-height: 1.3; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--shturval); }
+.cap { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--guide); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); padding: 14px 24px; border-radius: var(--radius-sm); font-family: var(--f-sans); font-weight: 700; font-size: 15px; text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: background .15s, box-shadow .2s; }
+.btn-primary { background: var(--shturval); color: var(--on-product); }
+.btn-primary:hover { box-shadow: var(--glow-shturval); }
+.btn-ghost { background: var(--surface-glass); color: var(--ink); }
+.btn-ghost:hover { background: var(--surface-frame); }
+.btn-sm { padding: 8px 14px; font-size: 13px; }
+.nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; height: 76px; margin-bottom: -76px; padding: 12px calc(var(--space-8) - 20px) 0; pointer-events: none; }
+.nav .wrap { display: flex; align-items: center; gap: var(--space-5); height: 64px; max-width: calc(var(--max) - 2 * var(--space-8) + 40px); padding-inline: 20px; border-radius: 16px; background: rgba(23, 23, 23, .62); backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%); box-shadow: 0 8px 32px rgba(0, 0, 0, .35); pointer-events: auto; }
+@media (max-width: 1100px) { .nav { padding-inline: 12px; } }
+@media (max-width: 600px) { .nav { padding-inline: 8px; } .nav .wrap { padding-inline: 12px; } }
+.nav-logo { display: flex; align-items: center; gap: var(--space-3); text-decoration: none; flex-shrink: 0; }
+.nav-logo img { height: 26px; width: auto; }
+.nav-logo span { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); background: var(--surface-glass); padding: 6px 10px; border-radius: var(--radius-md); }
+.nav-links { display: flex; gap: var(--space-5); font-size: 14px; color: var(--ink-muted); margin-left: auto; }
+.nav-links a { text-decoration: none; }
+.nav-links a:hover { color: var(--ink); }
+.nav .btn { padding: 10px 18px; font-size: 14px; }
+@media (max-width: 960px) { .nav-links { display: none; } .nav .btn { margin-left: auto; } }
+@media (max-width: 560px) { .nav .btn { display: none; } .nav-logo span { display: none; } }
+.hero { position: relative; padding-block: 164px 8px; isolation: isolate; }
+@media (max-width: 700px) { .hero { padding-top: 120px; } }
+.hero-glow { position: absolute; z-index: -1; inset: 0 0 -360px 0; overflow: hidden; pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 520px), transparent 100%); mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 520px), transparent 100%); }
+.hero-glow::before { content: ""; position: absolute; z-index: -1; width: 720px; height: 720px; right: -260px; top: -380px; background: radial-gradient(closest-side, rgba(28, 242, 222, .32), rgba(28, 242, 222, 0)); }
+.hero h1 { font-size: clamp(32px, 5vw, 64px); line-height: .98; font-weight: 700; letter-spacing: .01em; text-transform: uppercase; max-width: 18ch; }
+.hero h1 em { font-style: normal; color: var(--shturval); display: block; }
+.hero .lead { margin-top: var(--space-5); }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-7); align-items: center; }
+@media (max-width: 960px) { .hero-grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); } }
+.hero-copy { min-width: 0; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-6); }
+.hero-viz { margin: 0; min-width: 0; }
+.hero-viz svg { display: block; width: 100%; height: auto; max-width: 100%; overflow: visible; font-family: var(--f-sans); }
+.calc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: var(--space-5); align-items: start; }
+@media (max-width: 1000px) { .calc { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--surface-raised); border-radius: var(--radius-lg); padding: var(--space-6); min-width: 0; }
+@media (max-width: 520px) { .card { padding: var(--space-5); } }
+.card h3 { font-size: 20px; line-height: 1.25; }
+.inputs { display: grid; gap: var(--space-5); }
+.fld { display: grid; gap: var(--space-2); }
+.fld-top { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+.fld label, .fld .lbl { font-size: 15px; font-weight: 700; }
+.fld .hint { font-size: 13px; color: var(--guide); }
+.num { display: flex; align-items: center; gap: var(--space-2); }
+.num input { font: inherit; font-weight: 700; font-size: 16px; color: var(--ink); background: var(--black); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; width: 100%; min-width: 0; }
+.num input:focus { border-color: var(--ink-muted); outline: none; }
+.num input:focus-visible { outline: 2px solid var(--shturval); outline-offset: 1px; }
+.num .unit { font-size: 13px; color: var(--ink-muted); white-space: nowrap; }
+.fld-top label { min-width: 0; }
+.fld-top .num { flex: none; }
+.fld-top .num input { width: calc(10ch + 26px); }
+.num input::-webkit-outer-spin-button, .num input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.num input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+@media (max-width: 440px) { .fld-top { flex-wrap: wrap; } .fld-top .num { width: 100%; } .fld-top .num input, .params-group .fld-top .num input { width: 100%; } .params-group { padding: var(--space-4); } }
+input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 24px; background: transparent; margin: 0; cursor: pointer; }
+input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--shturval) 0 var(--p, 50%), var(--surface-frame) var(--p, 50%) 100%); }
+input[type="range"]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--surface-frame); }
+input[type="range"]::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--shturval); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -8px; background: var(--shturval); clip-path: var(--oct); border: 0; }
+input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; background: var(--shturval); clip-path: var(--oct); border: 0; border-radius: 0; }
+.seg { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: var(--space-1); padding: var(--space-1); border-radius: var(--radius-md); background: var(--black); border: 1px solid var(--line); }
+.seg button { font: inherit; font-weight: 700; font-size: 14px; color: var(--ink-muted); background: transparent; border: 0; border-radius: var(--radius-sm); padding: 9px 10px; cursor: pointer; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--surface-frame); color: var(--ink); }
+.seg button[aria-pressed="true"] small { color: var(--shturval); }
+.seg button small { display: block; font-weight: 500; font-size: 12px; color: var(--guide); }
+@media (max-width: 440px) { .seg[data-seg="stack"] { grid-template-columns: minmax(0, 1fr); } }
+.checks { display: grid; gap: var(--space-2); }
+.check { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: var(--space-3); align-items: start; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--black); border: 1px solid var(--line); cursor: pointer; }
+.check:hover { border-color: var(--ink-muted); }
+.check input { -webkit-appearance: none; appearance: none; margin: 1px 0 0; width: 22px; height: 22px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-raised); display: grid; place-items: center; cursor: pointer; }
+.check input:checked { background: var(--shturval); border-color: var(--shturval); }
+.check input:checked::after { content: ""; width: 10px; height: 6px; margin-top: -3px; border: solid var(--on-product); border-width: 0 0 2px 2px; transform: rotate(-45deg); }
+.check input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.check b { display: block; font-size: 15px; color: var(--ink); }
+.check span { display: block; font-size: 13px; color: var(--guide); }
+.warn { font-size: 13px; line-height: 1.45; color: var(--ink); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--surface-frame); border-left: 0; }
+.warn::before { content: "Учтите · "; font-weight: 700; color: var(--shturval); }
+details.params-more { border-top: 1px solid var(--line); padding-top: var(--space-4); }
+details.params-more > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); font-weight: 700; font-size: 15px; }
+details.params-more > summary::-webkit-details-marker { display: none; }
+details.params-more > summary::after { content: "+"; display: grid; place-items: center; width: 28px; height: 28px; flex: none; background: var(--surface-frame); clip-path: var(--oct); color: var(--shturval); font-size: 18px; }
+details.params-more[open] > summary::after { content: "–"; }
+details.params-more > summary small { display: block; font-weight: 500; font-size: 13px; color: var(--guide); }
+.params-body { display: grid; gap: var(--space-5); margin-top: var(--space-5); }
+.params-group { display: grid; gap: var(--space-4); padding: var(--space-5); border-radius: var(--radius-md); background: var(--black); }
+.params-group h4 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--shturval); }
+.params-group .fld label { font-size: 14px; font-weight: 500; color: var(--ink); }
+.params-group .num input { background: var(--surface-raised); font-size: 15px; padding: 8px 10px; }
+.params-group .fld-top .num input { width: calc(11ch + 22px); }
+.result { display: grid; gap: var(--space-5); }
+@media (min-width: 1001px) {
+  #calc { scroll-margin-top: -8px; }
+  .calc { align-items: start; }
+  .result { position: sticky; top: 88px; max-height: calc(100vh - 104px); overflow-y: auto; overscroll-behavior: contain;
+    scrollbar-width: thin; scrollbar-color: var(--line) transparent; padding-right: 4px; gap: var(--space-4); align-content: start; grid-auto-rows: max-content; }
+  .result .bar-track { height: clamp(120px, 20vh, 220px); }
+}
+@media (min-width: 1001px) and (max-height: 920px) {
+  .result .hero-num { padding: var(--space-5); }
+  .result .card { padding: var(--space-5); }
+}
+.hero-num { display: grid; gap: var(--space-2); padding: var(--space-6); border-radius: var(--radius-lg); background: var(--surface-frame); position: relative; overflow: hidden; isolation: isolate; }
+.hero-num::after { content: ""; position: absolute; z-index: -1; width: 360px; height: 360px; right: -150px; top: -170px; background: radial-gradient(closest-side, rgba(28, 242, 222, .3), rgba(28, 242, 222, 0)); }
+.hero-num .big { font-size: clamp(40px, 5.4vw, 64px); line-height: 1; font-weight: 700; color: var(--shturval); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.hero-num .big small { font-size: .42em; color: var(--ink); margin-left: 6px; letter-spacing: 0; }
+.hero-num p { font-size: 15px; color: var(--ink-muted); max-width: 52ch; }
+.hero-num p b { color: var(--ink); }
+.hero-num.neg .big { color: var(--ink); }
+.lic-badge { justify-self: start; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--on-product); background: var(--shturval); padding: 5px 10px; border-radius: var(--radius-sm); }
+.hero-num .per-year { font-size: clamp(20px, 2vw, 26px); line-height: 1.1; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.hero-num .per-year small { font-size: .62em; font-weight: 500; color: var(--ink-muted); margin-left: 4px; }
+.hero-num { scroll-margin-top: 88px; }
+.mbar { position: fixed; z-index: 30; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); padding: 12px 16px; border-radius: var(--radius-md); background: var(--surface-frame); border: 1px solid var(--line); box-shadow: 0 8px 32px rgba(0, 0, 0, .6); text-decoration: none; }
+.mbar .cap { font-size: 12px; }
+.mbar b { display: block; font-size: 20px; line-height: 1.15; color: var(--shturval); font-variant-numeric: tabular-nums; }
+.mbar b small { font-size: 13px; font-weight: 500; color: var(--ink-muted); margin-left: 4px; }
+.mbar span.go { font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+@media (min-width: 1001px) { .mbar { display: none; } }
+.bars { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); align-items: start; }
+@media (max-width: 440px) { .bars { gap: var(--space-2); } }
+.bar-row { display: grid; gap: var(--space-2); cursor: default; min-width: 0; }
+.bar-track { height: 240px; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: 6px; border-bottom: 1px solid var(--line); }
+.bar-val { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap; }
+@media (max-width: 440px) { .bar-val { font-size: 13px; } }
+.bar-fill { width: 100%; max-width: 96px; margin-inline: auto; border-radius: 4px 4px 0 0; background: var(--bar-other); height: 0; min-height: 2px; transition: height .35s ease; }
+.bar-row.sh .bar-fill { background: var(--shturval); }
+.bar-row:hover .bar-fill, .bar-row:focus-visible .bar-fill { filter: brightness(1.15); }
+.bar-name { font-size: 14px; color: var(--ink-muted); text-align: center; }
+.bar-row.sh .bar-name { color: var(--ink); font-weight: 700; }
+.bar-sub { font-size: 12px; line-height: 1.4; color: var(--guide); text-align: center; }
+@media (max-width: 440px) { .bar-name { font-size: 13px; } .bar-sub { font-size: 12px; } }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
+.kpi { padding: var(--space-4); border-radius: var(--radius-md); background: var(--surface-raised); min-width: 0; }
+.kpi b { display: block; font-size: 22px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.kpi span { display: block; font-size: 12px; color: var(--ink-muted); margin-top: 4px; line-height: 1.35; }
+.kpi.sh b { color: var(--shturval); }
+@media (max-width: 480px) { .kpis { grid-template-columns: minmax(0, 1fr); } }
+.ce { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: var(--space-3); padding: var(--space-4); border-radius: var(--radius-md); border: 1px solid var(--shturval); font-size: 14px; color: var(--ink-muted); }
+.ce::before { content: ""; width: 20px; height: 20px; margin-top: 2px; background: var(--shturval); clip-path: var(--oct); }
+.ce b { color: var(--ink); }
+.ce a { color: var(--shturval); }
+.res-cta { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.tip { position: fixed; z-index: 50; pointer-events: none; background: var(--surface-frame); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13px; width: max-content; min-width: 260px; max-width: min(380px, calc(100vw - 24px)); box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+.tip h5 { margin: 0 0 6px; font-size: 13px; }
+.tip div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-4); align-items: baseline; color: var(--ink-muted); padding-block: 2px; }
+.tip div b { white-space: nowrap; }
+.tip div b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.tbl-wrap { overflow-x: auto; border-radius: var(--radius-lg); background: var(--surface-raised); }
+table.tbl { width: 100%; border-collapse: collapse; min-width: 640px; font-variant-numeric: tabular-nums; }
+.tbl th, .tbl td { text-align: right; padding: 14px var(--space-5); border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.tbl thead th { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--guide); }
+.tbl thead th.sh { color: var(--shturval); }
+.tbl td.sh { background: rgba(28, 242, 222, .05); color: var(--ink); }
+.tbl td { color: var(--ink-muted); }
+.tbl td:first-child { color: var(--ink); }
+.tbl td small { display: block; font-size: 12px; color: var(--guide); }
+.tbl tfoot td { font-weight: 700; color: var(--ink); border-bottom: 0; }
+.tbl tfoot td.sh { color: var(--shturval); }
+.tbl .zero { color: var(--guide); }
+.tabs { display: inline-flex; gap: var(--space-1); padding: var(--space-1); border-radius: var(--radius-md); background: var(--surface-raised); margin-bottom: var(--space-4); }
+.tabs button { font: inherit; font-weight: 700; font-size: 14px; color: var(--ink-muted); background: transparent; border: 0; border-radius: var(--radius-sm); padding: 9px 16px; cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--surface-frame); color: var(--ink); }
+.method-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: var(--space-7); }
+@media (min-width: 901px) { .method-grid > .m-card:nth-child(-n+2) { grid-row: span 2; } }
+.m-card .m-link { color: var(--shturval); font-weight: 700; text-decoration: none; font-size: 14px; }
+.m-card .m-link:hover { text-decoration: underline; }
+@media (max-width: 900px) { .method-grid { grid-template-columns: minmax(0, 1fr); } }
+.m-card { padding: var(--space-5); border-radius: var(--radius-lg); background: var(--surface-raised); display: grid; gap: var(--space-3); align-content: start; }
+.m-card h3 { font-size: 18px; }
+.m-card p, .m-card li { font-size: 14px; color: var(--ink-muted); }
+.m-card ul { display: grid; gap: 6px; }
+.m-card li { display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: var(--space-2); }
+.m-card li::before { content: ""; width: 8px; height: 8px; margin-top: 6px; background: var(--shturval); clip-path: var(--oct); }
+.m-card .formula { font-family: var(--f-mono); font-size: 12px; color: var(--shturval); background: var(--black); padding: 10px 12px; border-radius: var(--radius-sm); line-height: 1.6; }
+.coef-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: var(--space-4); margin-bottom: var(--space-4); }
+.coef-head h3 { font-size: 22px; }
+.coef-head p { font-size: 14px; color: var(--ink-muted); max-width: 70ch; margin-top: 6px; }
+.tbl.coef td { vertical-align: middle; }
+.tbl.coef input { font: inherit; font-weight: 700; font-size: 14px; color: var(--ink); background: var(--black); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; width: 84px; text-align: right; }
+.tbl.coef input:disabled { background: transparent; border-color: transparent; color: var(--ink-muted); -webkit-text-fill-color: var(--ink-muted); opacity: 1; }
+.tbl.coef td.sh input:disabled { color: var(--ink); -webkit-text-fill-color: var(--ink); }
+.tbl.coef tr.grp td { background: var(--black); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--shturval); padding-block: 10px; }
+.tbl.coef tr.changed td:first-child::after { content: "изменено"; margin-left: 8px; font-size: 12px; color: var(--shturval); }
+.cta { position: relative; overflow: hidden; padding-bottom: 112px; }
+.cta-glow { position: absolute; z-index: 0; width: 520px; height: 520px; left: -160px; bottom: -220px; filter: blur(110px); opacity: .45; pointer-events: none; }
+.cta-glow i { display: block; width: 100%; height: 100%; background: var(--shturval); clip-path: var(--oct); }
+.cta .wrap { position: relative; z-index: 1; }
+.cta-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-7); align-items: start; }
+@media (max-width: 900px) { .cta-grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); } }
+.cta h2 { font-size: clamp(30px, 4vw, 52px); line-height: 1.02; font-weight: 700; letter-spacing: .01em; text-transform: uppercase; }
+.cta h2 span { color: var(--shturval); display: block; }
+.cta .lead { margin-top: var(--space-5); }
+.cta-list { display: grid; gap: var(--space-3); margin-top: var(--space-5); }
+.cta-list li { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: var(--space-3); font-size: 15px; color: var(--ink-muted); }
+.cta-list li::before { content: ""; width: 12px; height: 12px; margin-top: 5px; background: var(--shturval); clip-path: var(--oct); }
+form.lead-form { display: grid; gap: 14px; background: var(--surface-raised); border-radius: var(--radius-lg); padding: var(--space-6); }
+@media (max-width: 520px) { form.lead-form { padding: var(--space-5); } }
+.field { display: grid; gap: 6px; }
+.field label { font-size: 13px; color: var(--ink-muted); }
+.field input, .field textarea { font: inherit; font-size: 15px; color: var(--ink); background: var(--black); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px; width: 100%; }
+.field input:focus, .field textarea:focus { border-color: var(--ink-muted); outline: none; }
+.field input:focus-visible, .field textarea:focus-visible { outline: 2px solid var(--shturval); outline-offset: 1px; }
+.field textarea { min-height: 72px; resize: vertical; }
+.field textarea[readonly] { color: var(--ink-muted); font-size: 13px; min-height: 96px; }
+.field-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 520px) { .field-row { grid-template-columns: minmax(0, 1fr); } }
+.form-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.form-msg { font-size: 13px; color: var(--shturval); min-height: 1.2em; }
+.form-fine { font-size: 12px; color: var(--guide); }
+footer { border-top: 1px solid var(--line); padding-block: var(--space-6); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-6); align-items: center; justify-content: space-between; font-size: 14px; color: var(--ink-muted); }
+footer img { height: 28px; width: auto; }
+footer nav { display: flex; flex-wrap: wrap; gap: var(--space-5); }
+footer a { text-decoration: none; }
+footer a:hover { color: var(--ink); }
+:root { --shturval-tint: rgba(28, 242, 222, .08); --shturval-tint-2: rgba(28, 242, 222, .16); --band: var(--surface-raised); }
+.hl { color: var(--shturval); }
+.eyebrow { display: flex; align-items: center; gap: 10px; }
+.eyebrow::before { content: ""; flex: none; width: 10px; height: 10px; background: var(--shturval); clip-path: var(--oct); }
+.eyebrow .n { color: var(--shturval); }
+.hero-glow::before { background: radial-gradient(closest-side, rgba(28, 242, 222, .42), rgba(28, 242, 222, 0)); }
+.hero-glow::after { content: ""; position: absolute; z-index: -1; width: 1000px; height: 560px; left: -380px; bottom: 80px; background: radial-gradient(closest-side, rgba(28, 242, 222, .2), rgba(28, 242, 222, 0)); pointer-events: none; }
+.seg button[aria-pressed="true"] { background: var(--shturval-tint-2); }
+.check:has(input:checked) { background: var(--shturval-tint); }
+details.params-more > summary::after { background: var(--shturval-tint-2); }
+details.params-more[open] > summary { color: var(--shturval); }
+.hero-num { background: var(--shturval); color: var(--on-product); }
+.hero-num::after { background: radial-gradient(closest-side, rgba(255, 255, 255, .35), rgba(255, 255, 255, 0)); }
+.hero-num .cap { color: rgba(0, 0, 0, .66); }
+.hero-num .big, .hero-num .big small, .hero-num .per-year, .hero-num p b { color: var(--on-product); }
+.hero-num .per-year small, .hero-num p { color: rgba(0, 0, 0, .74); }
+.hero-num .lic-badge { background: var(--on-product); color: var(--shturval); }
+.hero-num.neg { background: var(--surface-frame); color: var(--ink); }
+.hero-num.neg::after { background: radial-gradient(closest-side, rgba(28, 242, 222, .3), rgba(28, 242, 222, 0)); }
+.hero-num.neg .cap { color: var(--guide); }
+.hero-num.neg .big, .hero-num.neg .big small, .hero-num.neg .per-year, .hero-num.neg p b { color: var(--ink); }
+.hero-num.neg .per-year small, .hero-num.neg p { color: var(--ink-muted); }
+.hero-num.neg .lic-badge { background: var(--shturval); color: var(--on-product); }
+.bar-row.sh .bar-fill { box-shadow: 0 0 28px rgba(28, 242, 222, .35); }
+.bar-row.sh .bar-val { color: var(--shturval); }
+.kpi.sh { background: var(--shturval-tint); }
+.sec-band { background: var(--band); margin-top: 96px; padding-block: 96px; }
+.sec-band .tbl-wrap, .sec-band .tabs { background: var(--black); }
+@media (max-width: 700px) { .sec-band { margin-top: 64px; padding-block: 64px; } }
+.tabs button[aria-selected="true"] { background: var(--shturval-tint-2); color: var(--ink); }
+.tbl td.sh { background: var(--shturval-tint); }
+.sec-glow { position: relative; isolation: isolate; overflow: hidden; }
+.sec-glow::before { content: ""; position: absolute; z-index: -1; width: 760px; height: 760px; right: -300px; top: -120px; background: radial-gradient(closest-side, rgba(28, 242, 222, .2), rgba(28, 242, 222, 0)); pointer-events: none; }
+.m-card { position: relative; overflow: hidden; isolation: isolate; transition: background .2s; }
+.m-card::after { content: ""; position: absolute; z-index: -1; width: 280px; height: 280px; right: -140px; top: -140px; background: radial-gradient(closest-side, rgba(28, 242, 222, .25), rgba(28, 242, 222, 0)); opacity: 0; transition: opacity .2s; }
+.m-card:hover { background: var(--surface-frame); }
+.m-card:hover::after { opacity: 1; }
+.m-card .num-big { font-size: 48px; line-height: 1; font-weight: 700; color: var(--shturval); opacity: .9; }
+.cta { padding-top: 64px; }
+.cta > .wrap::before { content: ""; display: block; height: 1px; margin-bottom: 80px; background: linear-gradient(90deg, transparent, rgba(28, 242, 222, .4), transparent); }
+.cta-glow { width: 780px; height: 780px; left: auto; right: -200px; bottom: -300px; opacity: .5; }
+@media (max-width: 700px) { .cta > .wrap::before { margin-bottom: 56px; } }
+.hero-compact { padding-block: 128px 0; }
+@media (max-width: 700px) { .hero-compact { padding-top: 104px; } }
+.hero-compact h1 { font-size: clamp(28px, 3.4vw, 44px); line-height: 1.05; max-width: none; margin-top: var(--space-3); }
+.hero-compact h1 em { display: inline; }
+.hero-compact .lead { margin-top: var(--space-4); max-width: 70ch; }
+.passport { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: var(--space-6) 0 0; border-block: 1px solid var(--line); }
+.passport > div { padding: var(--space-4) var(--space-4) var(--space-4) 0; min-width: 0; }
+.passport > div + div { padding-left: var(--space-4); border-left: 1px solid var(--line); }
+.passport dt { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--guide); }
+.passport dd { margin: 4px 0 0; font-size: 14px; line-height: 1.4; color: var(--ink); }
+.passport dd a { color: var(--shturval); }
+@media (max-width: 900px) { .passport { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .passport > div:nth-child(3) { padding-left: 0; border-left: 0; }
+  .passport > div:nth-child(n+3) { border-top: 1px solid var(--line); } }
+@media (max-width: 480px) { .passport { grid-template-columns: minmax(0, 1fr); }
+  .passport > div, .passport > div + div { padding-left: 0; border-left: 0; }
+  .passport > div + div { border-top: 1px solid var(--line); } }
+#calc { padding-top: var(--space-7); }
+.res-meta { font-size: 13px; color: var(--guide); }
+.res-meta a { color: var(--ink-muted); }
+.hero-num .how { justify-self: start; font-size: 14px; font-weight: 700; color: var(--on-product); }
+.hero-num.neg .how { color: var(--shturval); }
+.facts { display: grid; gap: 1px; border-radius: var(--radius-md); overflow: hidden; background: var(--line); }
+.fact { display: grid; gap: 2px; padding: var(--space-3) var(--space-4); background: var(--surface-raised); }
+.fact .cap { font-size: 12px; }
+.fact b { font-size: 15px; line-height: 1.4; }
+.fact span { font-size: 13px; color: var(--guide); }
+.ex-btn { all: unset; display: block; cursor: pointer; font-weight: 700; color: var(--ink); }
+.ex-btn span { display: inline-block; margin-left: 8px; font-size: 12px; font-weight: 700; color: var(--shturval); white-space: nowrap; }
+.ex-btn span::after { content: " ▾"; }
+.ex-btn[aria-expanded="true"] span::after { content: " ▴"; }
+.ex-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.tbl tr.cat-row.open td { border-bottom-color: transparent; }
+.tbl tr.ex-row td { padding-top: 0; text-align: left; font-size: 12px; line-height: 1.5; color: var(--ink-muted); }
+.tbl tr.ex-row td.sh { color: var(--ink); }
+.ex-cap { font-size: 12px; color: var(--guide); }
+.ex-line { display: block; padding: 3px 0; border-top: 1px dashed var(--line); }
+.ex-line:first-child { border-top: 0; }
+.ex-line i { font-style: normal; color: var(--guide); margin-right: 6px; }
+.ex-line b { color: var(--ink); white-space: nowrap; }
+.m-card .formula b { color: var(--ink); font-weight: 500; }
+.fn { position: relative; font-size: 12px; font-weight: 700; color: var(--shturval); text-decoration: none; vertical-align: super; line-height: 0; margin-left: 2px; }
+.fn::after { content: ""; position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; transform: translate(-50%, -50%); }
+.fn:hover { text-decoration: underline; }
+.src { margin-top: var(--space-7); }
+.tbl.src-tbl td { text-align: left; vertical-align: top; }
+.tbl.src-tbl td:first-child { color: var(--guide); width: 3ch; }
+.tbl.src-tbl td:nth-child(3) { color: var(--ink); white-space: nowrap; }
+.tbl.src-tbl th { text-align: left; }
+.tbl.src-tbl tr:target td { background: var(--shturval-16); }
+.kind { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .04em; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-muted); white-space: nowrap; }
+.kind.law { border-color: var(--shturval); color: var(--shturval); }
+.kind.ext { border-color: var(--ink-muted); color: var(--ink); }
+.src-legend { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin-top: var(--space-3); font-size: 13px; color: var(--guide); }
+.src-legend span { display: inline-flex; gap: 8px; align-items: center; }
+.cum { margin-bottom: var(--space-6); padding: var(--space-6); border-radius: var(--radius-lg); background: var(--black); }
+@media (max-width: 520px) { .cum { padding: var(--space-4); } }
+.cum-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: var(--space-3) var(--space-5); margin-bottom: var(--space-4); }
+.cum-head h3 { font-size: 20px; }
+.cum-head p { font-size: 15px; color: var(--ink-muted); max-width: 60ch; margin-top: 6px; }
+.cum-head p b { color: var(--ink); }
+.cum-legend { display: flex; gap: var(--space-4); font-size: 13px; color: var(--ink-muted); }
+.cum-legend span { display: inline-flex; align-items: center; gap: 8px; }
+.cum-legend i { width: 18px; height: 3px; border-radius: 2px; background: var(--ink-muted); }
+.cum-legend .sh i { background: var(--shturval); }
+.cum-svg { display: block; width: 100%; height: auto; overflow: visible; font-family: var(--f-sans); }
+.cum-svg .gl { stroke: var(--surface-frame); stroke-width: 1; }
+.cum-svg .ax { stroke: var(--line); stroke-width: 1; }
+.cum-svg text { fill: var(--guide); font-size: 12px; }
+.cum-svg .l-diy { stroke: var(--ink-muted); stroke-width: 2.5; fill: none; }
+.cum-svg .l-sh { stroke: var(--shturval); stroke-width: 3; fill: none; }
+.cum-svg .p-diy { fill: var(--ink-muted); } .cum-svg .p-sh { fill: var(--shturval); }
+.cum-svg .gap { fill: var(--shturval); opacity: .08; }
+.cum-svg .be { stroke: var(--shturval); stroke-width: 1; stroke-dasharray: 4 4; }
+.cum-svg text.be-t { fill: var(--shturval); font-weight: 700; }
+.cum-svg text.end { fill: var(--ink); font-weight: 700; font-size: 13px; }
+.cum-svg text.end.sh { fill: var(--shturval); }
+.cum-svg text.end-v { fill: var(--ink-muted); font-size: 12px; }
+.cum-note { margin-top: var(--space-3); font-size: 13px; color: var(--guide); }
+.hero-num:not(.neg)::after { display: none; }
+.hero-compact .hero-grid { align-items: center; }
+.hero-compact h1 em { display: block; }
+.hero-facts { display: grid; gap: var(--space-3); margin-top: var(--space-5); max-width: 60ch; }
+.hero-facts li { display: grid; grid-template-columns: 12px minmax(0, 1fr); gap: var(--space-3); font-size: 15px; line-height: 1.45; color: var(--ink-muted); }
+.hero-facts li::before { content: ""; width: 10px; height: 10px; margin-top: 6px; background: var(--shturval); clip-path: var(--oct); }
+.hero-facts b { color: var(--ink); }
+.hero-facts a { color: var(--shturval); }
+.hero-compact .hero-viz svg { max-height: 360px; }
+@media (max-width: 960px) { .hero-compact .hero-viz { max-width: 360px; margin-inline: auto; } }
+.ex-how { font-size: 13px; line-height: 1.5; color: var(--ink); margin-bottom: var(--space-3); }
+.tbl tr.ex-row td.sh .ex-how { color: var(--ink); }
+.ex-years { font-size: 12px; color: var(--guide); }
+.ex-years .ex-line { color: var(--guide); }
+.ex-years .ex-line b { color: var(--ink-muted); font-weight: 700; }
+:root { --hex: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+.check-wrap { position: relative; }
+.check-wrap .check { padding-right: 56px; }
+.info-hex { position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 0; background: none; border-radius: var(--radius-sm); cursor: pointer; }
+.info-hex span { display: grid; place-items: center; width: 24px; height: 26px; background: var(--line); clip-path: var(--hex); color: var(--shturval); font: 700 13px/1 var(--f-sans); transition: background .15s, color .15s; }
+.info-hex:hover span, .info-hex[aria-expanded="true"] span { background: var(--shturval); color: var(--on-product); }
+.info-hex:focus-visible { outline: 2px solid var(--focus); outline-offset: 0; }
+.m-pop { position: absolute; z-index: 30; top: calc(100% + 8px); left: 0; right: 0; padding: var(--space-4) var(--space-4) var(--space-4); background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-md); box-shadow: 0 16px 40px rgba(0,0,0,.6); font-size: 13px; line-height: 1.45; color: var(--ink-muted); }
+.m-pop::before { content: ""; position: absolute; top: -7px; right: 20px; width: 12px; height: 12px; background: var(--surface-raised); border: solid var(--line); border-width: 1px 0 0 1px; transform: rotate(45deg); }
+.m-pop h5 { margin: 0 32px var(--space-2) 0; font-size: 15px; color: var(--ink); }
+.m-pop p { margin: 0 0 var(--space-3); }
+.m-pop .x { position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; border: 0; background: none; color: var(--ink-muted); font-size: 20px; line-height: 1; cursor: pointer; border-radius: var(--radius-sm); }
+.m-pop .x:hover { color: var(--ink); }
+.m-pop .x:focus-visible { outline: 2px solid var(--focus); }
+.m-pop table { width: 100%; border-collapse: collapse; margin-bottom: var(--space-3); }
+.m-pop th, .m-pop td { text-align: left; vertical-align: top; padding: 6px 8px 6px 0; border-top: 1px solid var(--line); }
+.m-pop th { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--guide); border-top: 0; }
+.m-pop td:first-child { color: var(--ink); }
+.m-pop td:not(:first-child), .m-pop th:not(:first-child) { width: 27%; }
+.m-pop td small { display: block; color: var(--guide); font-size: 12px; }
+.m-pop .formula { margin: 0 0 var(--space-3); padding: 8px 12px; border-radius: var(--radius-sm); background: var(--surface-frame); color: var(--ink); font-size: 13px; }
+.m-pop .eff { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); margin: 0; }
+.m-pop .eff div { padding: 8px 10px; border-radius: var(--radius-sm); background: var(--surface-frame); }
+.m-pop .eff div.sh { background: var(--shturval-16); }
+.m-pop .eff span { display: block; font-size: 12px; color: var(--guide); }
+.m-pop .eff b { color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.m-pop .eff-cap { margin: var(--space-3) 0 var(--space-2); color: var(--ink); font-weight: 700; }
+.m-pop .foot { margin: var(--space-3) 0 0; color: var(--guide); font-size: 12px; }
+@media (max-width: 560px) {
+  .m-pop .eff { grid-template-columns: minmax(0, 1fr); }
+  .m-pop thead { display: none; }
+  .m-pop tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .m-pop td, .m-pop td:not(:first-child) { display: block; width: auto; padding: 0; border: 0; }
+  .m-pop td:first-child { grid-column: 1 / -1; }
+  .m-pop td[data-l]::before { content: attr(data-l); display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--guide); }
+}
+.tbl tr.det-head td { padding: 14px var(--space-5) 8px; border-bottom: 1px solid var(--line); text-align: left; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--shturval); }
+.tbl tr.det-head td > span:first-child { margin-right: var(--space-4); }
+.yr-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; vertical-align: middle; }
+.yr-btn, .yr-one { font: 600 12px/1 var(--f-sans); letter-spacing: 0; text-transform: none; color: var(--ink-muted); background: var(--surface-frame); border: 0; border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+.yr-one { cursor: default; }
+.yr-btn[aria-pressed="true"] { background: var(--shturval-tint-2); color: var(--shturval); }
+.yr-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.tbl tr.det-row td { padding-block: 7px; font-size: 13px; border-bottom: 1px dashed var(--line); font-variant-numeric: tabular-nums; }
+.tbl tr.det-row td:first-child { padding-left: calc(var(--space-5) + 12px); font-weight: 500; color: var(--ink-muted); }
+.tbl tr.det-row td small { font-size: 12px; line-height: 1.4; }
+.tbl tr.det-sub td { color: var(--ink); font-weight: 700; }
+.tbl tr.det-sub td:first-child { color: var(--ink); font-weight: 700; }
+.tbl tr.det-sum td { color: var(--ink); font-weight: 700; border-bottom: 1px solid var(--line); }
+.tbl tr.det-sum td:first-child { color: var(--ink); font-weight: 700; }
+.tbl tr.det-sum td.sh { color: var(--shturval); }
+.tbl tr.ex-yrs td { padding-top: 12px; }
+.reset-row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.btn-fine { color: var(--shturval); }
+#fine { scroll-margin-top: 100px; }
+.ex-btn span::after { content: " →"; }
+html.drawer-open { overflow: hidden; }
+.drawer { position: fixed; inset: 0; z-index: 60; }
+.drawer-bg { position: absolute; inset: 0; background: rgba(0, 0, 0, .6); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+.drawer-panel { position: absolute; top: 0; right: 0; bottom: 0; width: min(1040px, 100vw); display: flex; flex-direction: column; background: var(--surface-raised); border-left: 1px solid var(--line); box-shadow: -24px 0 64px rgba(0, 0, 0, .5); animation: drawer-in .22s ease-out; }
+@keyframes drawer-in { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .drawer-panel { animation: none; } }
+.drawer-top { display: flex; justify-content: space-between; align-items: start; gap: var(--space-4); padding: var(--space-5) var(--space-6) var(--space-3); }
+.drawer-top h3 { font-size: 26px; margin-top: 6px; }
+.drawer-sub { font-size: 14px; color: var(--ink-muted); margin-top: 4px; }
+.drawer-x { flex: none; width: 40px; height: 40px; border: 0; border-radius: var(--radius-sm); background: var(--surface-frame); color: var(--ink); font-size: 22px; line-height: 1; cursor: pointer; }
+.drawer-x:hover { background: var(--line); }
+.drawer-x:focus-visible, .drawer-cats button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.drawer-cats { display: flex; gap: 6px; overflow-x: auto; padding: 0 var(--space-6) var(--space-4); border-bottom: 1px solid var(--line); scrollbar-width: thin; }
+.drawer-cats button { flex: none; font: 600 12px/1 var(--f-sans); color: var(--ink-muted); background: var(--surface-frame); border: 0; border-radius: 999px; padding: 8px 12px; cursor: pointer; white-space: nowrap; }
+.drawer-cats button:hover { color: var(--ink); }
+.drawer-cats button[aria-pressed="true"] { background: var(--shturval); color: var(--on-product); }
+.drawer-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: var(--space-5) var(--space-6) var(--space-7); }
+.drawer-body .tbl-wrap { background: var(--black); border-radius: var(--radius-md); }
+.d-tot, .d-how { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
+.d-tot div, .d-how div { padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); background: var(--black); }
+.d-tot div.sh, .d-how div.sh { background: var(--shturval-tint); }
+.d-tot span, .d-how span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--guide); }
+.d-tot b { display: block; font-size: 24px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.d-tot div.sh b { color: var(--shturval); }
+.d-tot small { font-size: 12px; color: var(--guide); }
+.d-how p { font-size: 13px; line-height: 1.5; color: var(--ink-muted); margin-top: 6px; }
+.d-how div.sh p { color: var(--ink); }
+.d-h { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--shturval); margin: var(--space-6) 0 var(--space-3); }
+.d-steps-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin: var(--space-6) 0 var(--space-3); }
+.d-steps-head .d-h { margin: 0; }
+.d-note { font-size: 13px; color: var(--ink-muted); margin: calc(-1 * var(--space-2)) 0 var(--space-3); }
+.det-tbl { min-width: 640px; }
+.det-tbl th, .det-tbl td { padding: 10px var(--space-4); }
+.tbl.det-tbl tr.det-row td:first-child { padding-left: var(--space-4); }
+.det-tbl td:first-child { width: 38%; }
+.d-years td b { display: block; color: var(--ink); }
+.d-years td small { font-size: 12px; color: var(--guide); }
+@media (max-width: 700px) {
+  .drawer-top { padding: var(--space-4) var(--space-4) var(--space-3); }
+  .drawer-top h3 { font-size: 21px; }
+  .drawer-cats { padding: 0 var(--space-4) var(--space-3); }
+  .drawer-body { padding: var(--space-4) var(--space-4) var(--space-7); }
+  .d-tot, .d-how { grid-template-columns: minmax(0, 1fr); }
+  .d-tot div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+  .d-tot b { font-size: 18px; margin: 0; order: 2; }
+  .d-tot small { display: none; }
+}
+.back-btn { position: fixed; z-index: 40; right: 20px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); width: 56px; height: 56px; display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: pointer; animation: back-in .2s ease-out; }
+.back-btn span { display: grid; place-items: center; width: 100%; height: 100%; background: var(--shturval); clip-path: var(--oct); color: var(--on-product); font: 700 22px/1 var(--f-sans); transition: transform .2s; }
+.back-btn:hover span { transform: scale(1.06); }
+.back-btn.down span { transform: rotate(180deg); }
+.back-btn.down:hover span { transform: rotate(180deg) scale(1.06); }
+.back-btn:hover { filter: drop-shadow(0 0 16px rgba(28, 242, 222, .55)); }
+.back-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 12px; }
+@keyframes back-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .back-btn { animation: none; } }
+@media (max-width: 1000px) { body:has(#mbar:not([hidden])) .back-btn { bottom: calc(96px + env(safe-area-inset-bottom, 0px)); } }
+@media (max-width: 600px) { .back-btn { right: 12px; width: 48px; height: 48px; } }
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.m-pop:focus { outline: none; }
+@media (max-width: 1000px), (pointer: coarse) {
+  .btn-sm { min-height: 44px; }
+  .seg button { min-height: 44px; }
+  .tabs button { min-height: 44px; }
+  .num input, .tbl.coef input { min-height: 44px; }
+  input[type="range"] { height: 44px; }
+  .ex-btn { padding-block: 6px; min-height: 44px; box-sizing: border-box; }
+  .info-hex { width: 44px; height: 44px; top: 4px; right: 4px; }
+  .check-wrap .check { padding-right: 60px; }
+  .m-pop .x, .drawer-x { width: 44px; height: 44px; }
+  .yr-btn, .drawer-cats button { min-height: 44px; padding-inline: 14px; }
+  .hero-num .how, .m-card .m-link { display: inline-flex; align-items: center; min-height: 44px; }
+  .nav-logo { min-height: 44px; }
+}
+.hn-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-2); }
+.doubt-btn { font: 700 14px/1 var(--f-sans); color: var(--ink); background: var(--on-product); border: 0; border-radius: 999px; padding: 10px 16px; cursor: pointer; transition: transform .15s; }
+.doubt-btn:hover { transform: translateY(-1px); }
+.hero-num.neg .doubt-btn { background: var(--shturval); color: var(--on-product); }
+.drawer-panel.narrow { width: min(680px, 100vw); }
+.d-lead { font-size: 16px; line-height: 1.55; color: var(--ink-muted); }
+.d-lead b { color: var(--ink); }
+.doubt-list { list-style: none; counter-reset: dq; display: grid; gap: var(--space-3); margin: var(--space-5) 0 var(--space-4); padding: 0; }
+.doubt-list li { counter-increment: dq; position: relative; padding: var(--space-4) var(--space-5) var(--space-4) 64px; border-radius: var(--radius-md); background: var(--black); display: grid; gap: var(--space-2); }
+.doubt-list li::before { content: counter(dq); position: absolute; left: 20px; top: 18px; width: 28px; height: 28px; display: grid; place-items: center; background: var(--shturval); clip-path: var(--oct); color: var(--on-product); font: 700 14px/1 var(--f-sans); }
+.doubt-list h4 { font-size: 17px; color: var(--ink); }
+.doubt-list p { font-size: 14px; line-height: 1.55; color: var(--ink-muted); }
+.doubt-list p b { color: var(--ink); }
+.doubt-act { justify-self: start; margin-top: var(--space-1); background: var(--shturval-tint-2); color: var(--shturval); }
+.doubt-act:hover { background: var(--shturval); color: var(--on-product); }
+@media (max-width: 560px) { .doubt-list li { padding: var(--space-4) var(--space-4) var(--space-4) 56px; } .doubt-list li::before { left: 16px; } }
+@media (max-width: 1000px), (pointer: coarse) { .doubt-btn { min-height: 44px; } }
+.hero-grid { position: relative; }
+.proto-badge { position: absolute; top: 0; right: 0; z-index: 2; margin: 0; padding: 8px 16px; border-radius: 999px; background: #ffd23f; color: #000; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; line-height: 1; }
+@media (max-width: 960px) { .proto-badge { position: static; justify-self: end; margin-bottom: calc(-1 * var(--space-4)); } }
+</style>
+<header class="nav">
+  <div class="wrap">
+    <a class="nav-logo" href="https://chislitellab.ru/shturval" target="_blank" rel="noopener" aria-label="Штурвал">
+      <img src="assets/shturval-horizontal-on-dark.svg" alt="Штурвал">
+      <span>Калькулятор TCO</span>
+    </a>
+    <nav class="nav-links" aria-label="Разделы страницы">
+      <a href="#calc">Расчёт</a>
+      <a href="#details">Детализация</a>
+      <a href="#method">Как мы считаем</a>
+      <a href="#sources">Источники</a>
+    </nav>
+    <a class="btn btn-primary" href="#lead">Получить ТЭО</a>
+  </div>
+</header>
+<main>
+<div class="hero" id="top">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="wrap hero-grid">
+    <p class="proto-badge" title="Методику и коэффициенты ещё сверяем с командой Штурвала">Прототип</p>
+    <div class="hero-copy">
+      <p class="overline">Kubernetes-платформа · общая стоимость владения</p>
+      <h1 style="margin-top: 16px">Сколько стоит Kubernetes <em>в&nbsp;проде</em></h1>
+      <p class="lead">Лицензия – не главная статья расходов на Kubernetes-платформу. Главные – люди, которые собирают её, обновляют, закрывают уязвимости и дежурят. Посчитайте, сколько это стоит при своей сборке и <span class="hl">какой бюджет высвобождает Штурвал</span>.</p>
+      <div class="hero-cta"><a class="btn btn-primary" href="#calc">Посчитать для себя</a><a class="btn btn-ghost" href="#method">Как мы считаем</a></div>
+    </div>
+    <figure class="hero-viz" aria-label="Знак рубля превращается в знак Штурвала">
+      <svg id="hv" viewBox="0 0 600 400" role="img"></svg>
+    </figure>
+  </div>
+</div>
+<section id="calc" aria-labelledby="calc-h">
+  <div class="wrap">
+    <h2 class="sr-only" id="calc-h">Калькулятор: параметры и результат</h2>
+    <div class="calc">
+      <div class="card calc-inputs">
+        <div class="inputs" id="inputs">
+          <div>
+            <p class="overline">Ваша инфраструктура</p>
+            <h3 style="margin-top: 6px">Несколько вопросов – и&nbsp;оценка готова</h3>
+          </div>
+          <div class="fld">
+            <span class="lbl">Своя сборка Kubernetes</span>
+            <div class="seg" style="--n: 3" data-seg="stack" role="group" aria-label="Своя сборка Kubernetes">
+              <button type="button" data-v="none">Делаем с&nbsp;нуля<small>сборки ещё нет</small></button>
+              <button type="button" data-v="have">Уже есть<small>работает в проде</small></button>
+              <button type="button" data-v="rebuild">Переделываем<small>полностью заново</small></button>
+            </div>
+            <span class="hint" id="stack-hint"></span>
+          </div>
+          <div class="fld">
+            <span class="lbl">Как будут эксплуатироваться кластеры</span>
+            <div class="checks">
+              <div class="check-wrap"><label class="check" for="updates"><input type="checkbox" id="updates"><span><b>Kubernetes и узлы будут регулярно обновляться</b><span>Новые версии k8s, компонентов и ОС на узлах несколько раз в год</span></span></label><button class="info-hex" type="button" data-pop="updates" aria-expanded="false" aria-controls="pop-updates" aria-label="Как считаем обновления"><span aria-hidden="true">i</span></button><div class="m-pop" id="pop-updates" role="dialog" aria-label="Как считаем обновления" tabindex="-1" hidden></div></div>
+              <div class="check-wrap"><label class="check" for="vulns"><input type="checkbox" id="vulns"><span><b>Уязвимости будут системно закрываться</b><span>Аудиты безопасности, разбор CVE, патчи</span></span></label><button class="info-hex" type="button" data-pop="vulns" aria-expanded="false" aria-controls="pop-vulns" aria-label="Как считаем закрытие уязвимостей"><span aria-hidden="true">i</span></button><div class="m-pop" id="pop-vulns" role="dialog" aria-label="Как считаем закрытие уязвимостей" tabindex="-1" hidden></div></div>
+            </div>
+            <p class="warn" id="ops-warn" hidden></p>
+          </div>
+          <div class="fld">
+            <div class="fld-top">
+              <label for="clusters">Кластеров Kubernetes</label>
+              <div class="num"><input id="clusters" type="number" inputmode="numeric" min="1" max="500" step="1"><span class="unit">шт.</span></div>
+            </div>
+            <input type="range" data-for="clusters" min="1" max="200" step="1" aria-label="Кластеров Kubernetes">
+            <span class="hint">Продуктивные и тестовые вместе</span>
+          </div>
+          <div class="fld">
+            <div class="fld-top">
+              <label for="nodes">Worker-узлов во всех кластерах</label>
+              <div class="num"><input id="nodes" type="number" inputmode="numeric" min="3" max="20000" step="1"><span class="unit">шт.</span></div>
+            </div>
+            <input type="range" data-for="nodes" min="3" max="800" step="1" aria-label="Worker-узлов">
+            <span class="hint">Без master-узлов: их считаем сами – по 3 на кластер</span>
+          </div>
+          <div class="fld">
+            <span class="lbl">Горизонт расчёта</span>
+            <div class="seg" style="--n: 3" data-seg="years" role="group" aria-label="Горизонт расчёта">
+              <button type="button" data-v="3">3 года</button>
+              <button type="button" data-v="5">5 лет</button>
+              <button type="button" data-v="7">7 лет</button>
+            </div>
+          </div>
+          <div class="fld">
+            <span class="lbl">Режим эксплуатации</span>
+            <div class="seg" data-seg="mode" role="group" aria-label="Режим эксплуатации">
+              <button type="button" data-v="8x5">8×5<small>рабочие часы</small></button>
+              <button type="button" data-v="24x7">24×7<small>круглосуточно</small></button>
+            </div>
+          </div>
+          <div class="fld">
+            <div class="fld-top">
+              <label for="salary">Зарплата инженера</label>
+              <div class="num"><input id="salary" type="number" inputmode="numeric" min="50000" max="2000000" step="10000"><span class="unit">₽/мес</span></div>
+            </div>
+            <input type="range" data-for="salary" min="100000" max="800000" step="10000" aria-label="Зарплата инженера">
+            <span class="hint">До вычета НДФЛ. Взносы, премии и накладные посчитаем сами<a class="fn" href="#src-6" aria-label="Источник 6">6</a></span>
+          </div>
+          <details class="params-more" id="params-more">
+            <summary><span>Расширенные параметры<small>Рост кластеров, стоимость сотрудника, команды и простои</small></span></summary>
+            <div class="params-body">
+              <div class="params-group">
+                <h4>Рост инфраструктуры</h4>
+                <div class="fld">
+                  <div class="fld-top">
+                    <label for="clustersEnd">Кластеров к концу периода</label>
+                    <div class="num"><input id="clustersEnd" type="number" min="1" max="1000" step="1"><span class="unit">шт.</span></div>
+                  </div>
+                  <span class="hint">Растём линейно, узлов на кластер – столько же, сколько сейчас. По нашему опыту число кластеров всегда растёт, особенно при наличии удобных инструментов эксплуатации</span>
+                </div>
+              </div>
+              <div class="params-group">
+                <h4>Стоимость сотрудника</h4>
+                <div class="fld"><div class="fld-top"><label for="bonus">Премии и переработки, % к зарплате</label><div class="num"><input id="bonus" type="number" min="0" max="100" step="1"><span class="unit">%</span></div></div></div>
+                <div class="fld"><div class="fld-top"><label for="overhead">Накладные: место, техника, обучение, найм, ДМС – % к зарплате</label><div class="num"><input id="overhead" type="number" min="0" max="200" step="1"><span class="unit">%</span></div></div></div>
+                <div class="fld"><div class="fld-top"><label for="indexation">Индексация зарплат, % в год</label><div class="num"><input id="indexation" type="number" min="0" max="50" step="1"><span class="unit">%</span></div></div></div>
+                <div class="fld"><div class="fld-top"><label for="diyPremium">Надбавка платформенным инженерам: сборка, сопровождение, ИБ, разработка</label><div class="num"><input id="diyPremium" type="number" min="0" max="200" step="1"><span class="unit">%</span></div></div>
+                  <span class="hint">Тем, кто строит и сопровождает свою сборку, закрывает уязвимости и разрабатывает свою платформу, нужна более редкая экспертиза. Эксплуатация кластеров во всех вариантах – по обычной ставке.</span></div>
+                <span class="hint"><span id="emp-cost-note"></span><a class="fn" href="#src-1" aria-label="Источник 1">1</a><a class="fn" href="#src-2" aria-label="Источник 2">2</a></span>
+              </div>
+              <div class="params-group">
+                <h4>Своя сборка K8s</h4>
+                <span class="hint">Команды сборки, сопровождения и ИБ заданы для 10 кластеров. Сборку и ИБ для другого масштаба пересчитываем по корню: 40 кластеров – ×2, 3 кластера – ×0,55. Сопровождение растёт медленнее – см. подсказку к полю</span>
+                <div class="fld"><div class="fld-top"><label for="buildTeam">Команда создания сборки</label><div class="num"><input id="buildTeam" type="number" min="0" max="50" step="0.5"><span class="unit">чел.</span></div></div></div>
+                <div class="fld"><div class="fld-top"><label for="buildMonths">Срок создания сборки</label><div class="num"><input id="buildMonths" type="number" min="0" max="60" step="1"><span class="unit">мес.</span></div></div>
+                  <span class="hint">Сеть, хранилище, мониторинг, логи, доступы, бэкапы, безопасность, автоматизация</span></div>
+                <div class="fld"><div class="fld-top"><label for="automation">Автоматизация: экономия при удвоении кластеров</label><div class="num"><input id="automation" type="number" min="0" max="60" step="1"><span class="unit">%</span></div></div>
+                  <span class="hint" id="auto-hint">До 10 кластеров команда работает руками. Дальше каждое удвоение числа кластеров снижает плановую трудоёмкость на кластер на эту долю. Инциденты и запросы команд не автоматизируются</span></div>
+                <div class="fld"><div class="fld-top"><label for="maintFte">Сопровождение сборки после запуска</label><div class="num"><input id="maintFte" type="number" min="0" max="50" step="0.5"><span class="unit">FTE</span></div></div>
+                  <span class="hint" id="maint-hint">Проверка совместимости компонентов при каждом обновлении. Задано для 10 кластеров. Сборка одна на все кластеры, поэтому выше 10 кластеров команда растёт медленно: вдвое при 16-кратном росте их числа, не больше ×2 – это 160 кластеров и больше. Ниже 10 кластеров уменьшается по корню: 5 кластеров – ×0,71</span></div>
+              </div>
+              <div class="params-group">
+                <h4>Свой «Штурвал»</h4>
+                <div class="fld"><div class="fld-top"><label for="ownTeam">Команда разработки платформы</label><div class="num"><input id="ownTeam" type="number" min="0" max="200" step="1"><span class="unit">чел.</span></div></div>
+                  <span class="hint">Работает весь период: после запуска платформу нужно развивать и обновлять</span></div>
+                <div class="fld"><div class="fld-top"><label for="ownMonths">Срок разработки до запуска</label><div class="num"><input id="ownMonths" type="number" min="24" max="84" step="1"><span class="unit">мес.</span></div></div>
+                  <span class="hint">Не меньше 2 лет. Пока платформы нет, кластеры обслуживаются вручную – как в своей сборке</span></div>
+              </div>
+              <div class="params-group">
+                <h4>Команда эксплуатации</h4>
+                <div class="fld"><div class="fld-top"><label for="minTeam">Минимальная команда платформы</label><div class="num"><input id="minTeam" type="number" min="0" max="50" step="0.5"><span class="unit">чел.</span></div></div>
+                  <span class="hint">Меньше не бывает даже при малой нагрузке: отпуска, больничные, передача знаний</span></div>
+                <div class="fld"><div class="fld-top"><label for="rota">Людей в ротации дежурств 24×7</label><div class="num"><input id="rota" type="number" min="0" max="50" step="1"><span class="unit">чел.</span></div></div>
+                  <span class="hint">Ротация общая с командой инфраструктуры: отдельных людей под дежурства не нанимаем, платим доплату. Только для режима 24×7</span></div>
+                <div class="fld"><div class="fld-top"><label for="allowance">Доплата за дежурства, % к стоимости инженера</label><div class="num"><input id="allowance" type="number" min="0" max="100" step="1"><span class="unit">%</span></div></div></div>
+              </div>
+              <div class="params-group">
+                <h4>Штурвал: инфраструктура и обучение</h4>
+                <div class="fld"><div class="fld-top"><label for="mgmtVms">ВМ под кластер управления</label><div class="num"><input id="mgmtVms" type="number" min="0" max="50" step="1"><span class="unit">шт.</span></div></div>
+                  <span class="hint">Управляющий кластер Штурвала живёт отдельно от рабочих. У своей платформы он тоже есть – после запуска</span></div>
+                <div class="fld"><div class="fld-top"><label for="vmCost">Стоимость одной ВМ в год</label><div class="num"><input id="vmCost" type="number" min="0" max="10000000" step="10000"><span class="unit">₽</span></div></div></div>
+                <div class="fld"><div class="fld-top"><label for="trainCost">Обучение работе со Штурвалом, на инженера</label><div class="num"><input id="trainCost" type="number" min="0" max="2000000" step="10000"><span class="unit">₽</span></div></div>
+                  <span class="hint">Разово в первый год для всей команды эксплуатации</span></div>
+              </div>
+              <div class="params-group">
+                <h4>Миграция</h4>
+                <span class="hint">Считается отдельным проектом поверх команды эксплуатации – свободная ёмкость минимальной команды его не покрывает. На Штурвал – только если кластеры уже есть («уже есть» или «переделываем»). Своя сборка – при «переделываем». Свой «Штурвал» – всегда: после запуска кластеры переносят на новую платформу</span>
+                <div class="fld"><div class="fld-top"><label for="migPd">Перенос одного кластера, ч.д.</label><div class="num"><input id="migPd" type="number" min="0" max="100" step="0.5"><span class="unit">ч.д.</span></div></div>
+                  <span class="hint">Создать кластер, перенести приложения и данные, настроить доступы, переключить трафик, протестировать</span></div>
+                <div class="fld"><div class="fld-top"><label for="migParSh">Параллельная работа старой сборки при переходе на Штурвал</label><div class="num"><input id="migParSh" type="number" min="0" max="36" step="1"><span class="unit">мес.</span></div></div></div>
+                <div class="fld"><div class="fld-top"><label for="migParOther">Параллельная работа при переходе на новую сборку или свою платформу</label><div class="num"><input id="migParOther" type="number" min="0" max="36" step="1"><span class="unit">мес.</span></div></div></div>
+              </div>
+              <div class="params-group">
+                <h4>Безопасность и простои</h4>
+                <div class="fld"><div class="fld-top"><label for="secFte">Команда ИБ для закрытия уязвимостей</label><div class="num"><input id="secFte" type="number" min="0" max="20" step="0.5"><span class="unit">FTE</span></div></div>
+                  <span class="hint">Для своей сборки и своей платформы. В Штурвале это делает вендор. Значение – для 10 кластеров или 200 worker-узлов; с ростом пересчитываем по корню от большего из масштабов</span></div>
+                <div class="fld"><div class="fld-top"><label for="downCost">Стоимость часа простоя</label><div class="num"><input id="downCost" type="number" min="0" max="100000000" step="50000"><span class="unit">₽/ч</span></div></div>
+                  <span class="hint">Потери бизнеса, если сервисы в Kubernetes недоступны. Поставьте 0, чтобы не учитывать<a class="fn" href="#src-10" aria-label="Источник 10">10</a></span></div>
+                <span class="hint">Часы простоя в год. Простои из-за обновлений не считаются, если кластеры не обновляются</span>
+                <div class="fld"><div class="fld-top"><label for="downDiyUpd">Простои своей сборки из-за обновлений</label><div class="num"><input id="downDiyUpd" type="number" min="0" max="1000" step="1"><span class="unit">ч</span></div></div></div>
+                <div class="fld"><div class="fld-top"><label for="downDiyInc">Простои своей сборки из-за инцидентов</label><div class="num"><input id="downDiyInc" type="number" min="0" max="1000" step="1"><span class="unit">ч</span></div></div></div>
+                <div class="fld"><div class="fld-top"><label for="downShUpd">Простои Штурвала из-за обновлений</label><div class="num"><input id="downShUpd" type="number" min="0" max="1000" step="1"><span class="unit">ч</span></div></div></div>
+                <div class="fld"><div class="fld-top"><label for="downShInc">Простои Штурвала из-за инцидентов</label><div class="num"><input id="downShInc" type="number" min="0" max="1000" step="1"><span class="unit">ч</span></div></div></div>
+              </div>
+              <div class="reset-row">
+                <button class="btn btn-ghost btn-sm" type="button" id="reset">Сбросить все параметры</button>
+                <a class="btn btn-ghost btn-sm btn-fine" href="#fine">Тонкий расчёт <span aria-hidden="true">↓</span></a>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+      <div class="result">
+        <p class="res-meta" id="res-meta"></p>
+        <div class="hero-num" id="hero-num">
+          <p class="cap" id="hero-cap">Высвобождаемый бюджет за 5 лет</p>
+          <span class="lic-badge">Без стоимости лицензии Штурвала</span>
+          <div class="big" id="hero-big">–</div>
+          <div class="per-year" id="hero-year"></div>
+          <p id="hero-text"></p>
+          <div class="hn-actions">
+            <a class="how" href="#details">Как получилась эта сумма →</a>
+            <button class="doubt-btn" type="button" id="doubt-open" aria-haspopup="dialog">Не верю!</button>
+          </div>
+        </div>
+        <div class="card">
+          <div style="margin-bottom: 20px">
+            <h3>Стоимость владения</h3>
+            <span class="cap" id="bars-cap" style="display: block; margin-top: 4px">за 5 лет, без лицензии Штурвала</span>
+          </div>
+          <div class="bars" id="bars"></div>
+        </div>
+        <div class="facts" id="facts"></div>
+        <div class="kpis" id="kpis"></div>
+        <div class="ce" id="ce" hidden>
+          <span><b>До 10 worker-узлов Штурвал бесплатен.</b> Community Edition – полная функциональность без лицензии, поддержка в сообществе. <a href="https://chislitellab.ru/shturval" target="_blank" rel="noopener">Скачать Community Edition</a></span>
+        </div>
+        <div class="res-cta">
+          <a class="btn btn-primary" href="#lead">Рассчитать стоимость лицензии</a>
+          <a class="btn btn-ghost" href="#details">Детализация</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<a class="mbar" id="mbar" href="#hero-num" hidden>
+  <span><span class="cap" id="mbar-cap">Высвобождается за 5 лет</span><b id="mbar-val">–</b></span>
+  <span class="go">К графику ↓</span>
+</a>
+<section id="details" class="sec-band">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow"><span class="n">01</span> · Детализация</p>
+      <h2 class="h2">Из чего складывается сумма</h2>
+      <p class="lead">Все суммы – полная стоимость для компании: зарплата, взносы, премии и накладные. Нажмите на статью – покажем, как она посчитана по годам. <span class="hl">Лицензия Штурвала не входит</span> – её стоимость рассчитает менеджер под ваш сценарий.</p>
+    </div>
+    <div class="cum">
+      <div class="cum-head">
+        <div>
+          <h3>Накопленные затраты по годам</h3>
+          <p id="cum-text"></p>
+        </div>
+        <div class="cum-legend"><span><i></i>Своя сборка K8s</span><span class="sh"><i></i>Штурвал, без лицензии</span></div>
+      </div>
+      <svg class="cum-svg" id="cum" viewBox="0 0 720 280" role="img" aria-label="Накопленные затраты по годам: своя сборка и Штурвал"></svg>
+      <p class="cum-note">Свой «Штурвал» – в таблице ниже: на этом масштабе его линия ушла бы далеко вверх.</p>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Вид таблицы">
+      <button type="button" role="tab" aria-selected="true" data-tab="cat">По статьям</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="year">По годам</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="fte">Люди</button>
+    </div>
+    <div class="tbl-wrap"><table class="tbl" id="tbl"></table></div>
+  </div>
+</section>
+<section id="method" class="sec-glow">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="eyebrow"><span class="n">02</span> · Как мы считаем</p>
+      <h2 class="h2">Методика открыта – проверьте каждое допущение</h2>
+      <p class="lead">Основа – технико-экономическое обоснование, сделанное финансистами и проверенное на нескольких заказчиках. <span class="hl">Мы не говорим, что Штурвал всегда дешевле.</span> Если вы не обновляете кластеры и не закрываете уязвимости системно, своя сборка может обойтись дешевле – но это другие риски.</p>
+    </div>
+    <div class="method-grid">
+      <div class="m-card">
+        <p class="num-big">01</p>
+        <p class="overline">Трудоёмкость</p>
+        <h3>Сколько работы на кластерах</h3>
+        <p>Для каждой операции – человеко-дни на один кластер и частота в год. Сумма делится на 220 рабочих дней<a class="fn" href="#src-3" aria-label="Источник 3">3</a> – получаем число инженеров (FTE). Частоты операций – из релизных циклов Kubernetes и Штурвала<a class="fn" href="#src-4" aria-label="Источник 4">4</a><a class="fn" href="#src-5" aria-label="Источник 5">5</a>.</p>
+        <p class="formula">FTE = (разовые + новые кластеры × создание + кластеры × (эксплуатация + пересоздание + инциденты и запросы) + платформа) / 220</p>
+        <p>На большом масштабе команда автоматизирует рутину. После 10 кластеров каждое удвоение их числа снижает плановую трудоёмкость Штурвала на кластер на 25%, а у своей сборки сокращает её разрыв со Штурвалом – по умолчанию на 50%. Работу на узлах – ввод и вывод, обновление ОС, настройки – автоматизируют и тогда, когда узлов много: для неё отсчёт идёт от 10 кластеров или 200 worker-узлов, что наступит раньше. Ниже уровня Штурвала своя сборка не опускается: платформа и так сделана для автоматизации этой работы.</p>
+        <p>Команда эксплуатации не бывает меньше минимальной – отпуска и больничные никто не отменял. В режиме 24×7 платформа дежурит в общей ротации с инфраструктурой и платит доплату за дежурства.</p>
+      </div>
+      <div class="m-card">
+        <p class="num-big">02</p>
+        <p class="overline">Стоимость сотрудника</p>
+        <h3>Полная, а не «на руки»</h3>
+        <ul>
+          <li>Зарплата до НДФЛ и премии</li>
+          <li>Страховые взносы: 30% до предельной базы, 15,1% сверх неё<a class="fn" href="#src-1" aria-label="Источник 1">1</a><a class="fn" href="#src-2" aria-label="Источник 2">2</a></li>
+          <li>Накладные: рабочее место, техника, обучение, найм, ДМС</li>
+          <li>Ежегодная индексация</li>
+        </ul>
+        <p class="overline" style="margin-top: 4px">Ваш инженер сейчас</p>
+        <p class="formula" id="emp-formula"></p>
+      </div>
+      <div class="m-card">
+        <p class="num-big">03</p>
+        <p class="overline">Что ещё платит своя сборка</p>
+        <h3>Расходы, которых нет в Штурвале</h3>
+        <ul>
+          <li>Создание сборки до выхода в прод</li>
+          <li>Сопровождение: совместимость компонентов на каждом обновлении</li>
+          <li>Команда ИБ: разбор и закрытие уязвимостей каждый день</li>
+          <li>Простои при обновлениях и инцидентах</li>
+        </ul>
+      </div>
+      <div class="m-card">
+        <p class="num-big">04</p>
+        <p class="overline">Ваши коэффициенты</p>
+        <h3>Поправьте модель под себя</h3>
+        <p>Почти все коэффициенты можно поменять: трудоёмкость операций, частоты обновлений и аудитов, работу на узлах, инциденты и запросы команд. Модель сразу пересчитает результат. Команды, зарплаты и простои – в расширенных параметрах калькулятора.</p>
+        <p>Коэффициенты – в таблице ниже. Изменённые значения отмечаются и уходят вместе с заявкой, а кнопка «Вернуть коэффициенты» восстановит исходные.</p>
+        <a class="m-link" href="#fine">К таблице коэффициентов ↓</a>
+      </div>
+    </div>
+    <div class="coef-head" id="fine">
+      <div>
+        <h3>Трудоёмкость операций, человеко-дни</h3>
+        <p>Значения на один кластер<a class="fn" href="#src-7" aria-label="Источник 7">7</a>. Их можно поменять под свой опыт – расчёт обновится сразу.</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" type="button" id="reset-coef">Вернуть коэффициенты</button>
+    </div>
+    <div class="tbl-wrap"><table class="tbl coef" id="coef"></table></div>
+    <div class="src" id="sources">
+      <div class="coef-head">
+        <div>
+          <h3>Источники и допущения</h3>
+          <p>Откуда взято каждое значение по умолчанию. Нормативы и внешние данные можно проверить по ссылке. Допущения зависят от вашей компании – поменяйте их в расширенных параметрах.</p>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table class="tbl src-tbl">
+        <thead><tr><th>№</th><th>Что</th><th>По умолчанию</th><th>Тип</th><th>Источник</th></tr></thead>
+        <tbody>
+          <tr id="src-1"><td>1</td><td>Тариф страховых взносов</td><td>30% / 15,1%</td><td><span class="kind law">Норматив</span></td><td>Налоговый кодекс РФ, ст. 425: единый тариф 30% в пределах предельной базы и 15,1% сверх неё</td></tr>
+          <tr id="src-2"><td>2</td><td>Предельная база для взносов на 2026 год</td><td>2 979 000 ₽</td><td><span class="kind law">Норматив</span></td><td>Постановление Правительства РФ о предельной величине базы на 2026 год</td></tr>
+          <tr id="src-3"><td>3</td><td>Рабочих дней на одного инженера в год</td><td>220 дней</td><td><span class="kind">Расчёт</span></td><td>Производственный календарь (около 247 рабочих дней) минус отпуск 28 календарных дней (около 20 рабочих) и около 7 дней больничных</td></tr>
+          <tr id="src-4"><td>4</td><td>Обновлений Kubernetes в год</td><td>3</td><td><span class="kind ext">Внешние данные</span></td><td>Релизный цикл Kubernetes: три минорных версии в год – <a href="https://kubernetes.io/releases/" target="_blank" rel="noopener">kubernetes.io/releases</a></td></tr>
+          <tr id="src-5"><td>5</td><td>Обновлений самой платформы в год</td><td>3</td><td><span class="kind ext">Данные вендора</span></td><td>Частота обновлений Штурвала у заказчиков по данным команды – <a href="https://docs.shturval.tech/" target="_blank" rel="noopener">docs.shturval.tech</a></td></tr>
+          <tr id="src-6"><td>6</td><td>Зарплата инженера платформы</td><td>350 000 ₽/мес</td><td><span class="kind ext">Внешние данные</span></td><td>Рыночный ориентир для DevOps- и SRE-инженера уровня middle+ / senior</td></tr>
+          <tr id="src-7"><td>7</td><td>Трудоёмкость операций на кластере</td><td>таблица выше</td><td><span class="kind ext">Данные вендора</span></td><td>ТЭО «Штурвал против своей сборки» (2024), проверенное на заказчиках, и оценки команды Штурвала</td></tr>
+          <tr id="src-8"><td>8</td><td>Команды своей сборки и своей платформы</td><td>4 чел. × 12 мес., 2 + 1,5 FTE; 15 чел.</td><td><span class="kind">Допущение</span></td><td>Оценка команды Штурвала по опыту внедрений: создание сборки, сопровождение, ИБ, разработка своей платформы</td></tr>
+          <tr id="src-9"><td>9</td><td>Премии, накладные, индексация</td><td>15%, 30%, 10%</td><td><span class="kind">Допущение</span></td><td>Типовые значения для ИТ-компаний. Поставьте свои</td></tr>
+          <tr id="src-10"><td>10</td><td>Стоимость и часы простоя</td><td>300 000 ₽/ч</td><td><span class="kind">Допущение</span></td><td>Зависит от бизнеса. Поставьте свою оценку или 0, чтобы не учитывать простои</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+<section class="cta" id="lead">
+  <div class="cta-glow" aria-hidden="true"><i></i></div>
+  <div class="wrap">
+    <div class="cta-grid">
+      <div>
+        <p class="overline">Следующий шаг</p>
+        <h2 style="margin-top: 16px">Подробное ТЭО <span>под ваш сценарий</span></h2>
+        <p class="lead">Калькулятор даёт оценку по типовым допущениям. Мы <span class="hl">пересчитаем её на ваших данных</span> и добавим стоимость лицензии.</p>
+        <ul class="cta-list">
+          <li>Стоимость лицензии под ваш масштаб и режим поддержки</li>
+          <li>Трудоёмкость по вашим процессам: обновления, аудиты, пересоздание кластеров</li>
+          <li>Сравнение со своей сборкой или текущей платформой</li>
+        </ul>
+      </div>
+      <form class="lead-form" id="lead-form" novalidate>
+        <div class="field-row">
+          <div class="field"><label for="f-name">Имя</label><input id="f-name" name="name" autocomplete="name" required></div>
+          <div class="field"><label for="f-company">Компания</label><input id="f-company" name="company" autocomplete="organization" required></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="f-email">Рабочая почта</label><input id="f-email" name="email" type="email" autocomplete="email" required></div>
+          <div class="field"><label for="f-phone">Телефон</label><input id="f-phone" name="phone" type="tel" autocomplete="tel"></div>
+        </div>
+        <div class="field"><label for="f-calc">Ваш расчёт – уйдёт вместе с заявкой</label><textarea id="f-calc" name="calc" readonly></textarea></div>
+        <div class="field"><label for="f-comment">Комментарий</label><textarea id="f-comment" name="comment" placeholder="Например: сейчас 6 кластеров на vSphere, переезжаем на zVirt"></textarea></div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit" data-intent="teo">Получить ТЭО</button>
+          <button class="btn btn-ghost" type="submit" data-intent="price">Расчёт стоимости Штурвала</button>
+        </div>
+        <p class="form-msg" id="form-msg" role="status"></p>
+        <p class="form-fine">Кнопка откроет письмо в вашей почтовой программе – проверьте его и отправьте. Нажимая кнопку, вы соглашаетесь с обработкой персональных данных.</p>
+      </form>
+    </div>
+  </div>
+</section>
+</main>
+<footer>
+  <div class="wrap">
+    <img src="assets/chislitel-horizontal-white.svg" alt="Лаборатория Числитель">
+    <nav aria-label="Ссылки">
+      <a href="https://chislitellab.ru/shturval" target="_blank" rel="noopener">Штурвал</a>
+      <a href="https://docs.shturval.tech/" target="_blank" rel="noopener">Документация</a>
+      <a href="https://chislitellab.ru/" target="_blank" rel="noopener">chislitellab.ru</a>
+    </nav>
+  </div>
+</footer>
+<div class="tip" id="tip" hidden></div>
+<p class="sr-only" id="sr-status" role="status" aria-live="polite"></p>
+<button class="back-btn" id="back-btn" type="button" aria-label="Вернуться туда, где были" title="Вернуться туда, где были" hidden><span aria-hidden="true">↑</span></button>
+<div class="drawer" id="doubt" hidden>
+  <div class="drawer-bg" data-close></div>
+  <aside class="drawer-panel narrow" role="dialog" aria-modal="true" aria-labelledby="doubt-title">
+    <div class="drawer-top">
+      <div>
+        <p class="overline">Не верю!</p>
+        <h3 id="doubt-title">Почему сумма такая большая</h3>
+      </div>
+      <button class="drawer-x" type="button" data-close aria-label="Закрыть">×</button>
+    </div>
+    <div class="drawer-body" id="doubt-body"></div>
+  </aside>
+</div>
+<div class="drawer" id="drawer" hidden>
+  <div class="drawer-bg" data-close></div>
+  <aside class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+    <div class="drawer-top">
+      <div>
+        <p class="overline">Как посчитано</p>
+        <h3 id="drawer-title"></h3>
+        <p class="drawer-sub" id="drawer-sub"></p>
+      </div>
+      <button class="drawer-x" type="button" data-close aria-label="Закрыть">×</button>
+    </div>
+    <nav class="drawer-cats" id="drawer-cats" aria-label="Статьи"></nav>
+    <div class="drawer-body" id="drawer-body"></div>
+  </aside>
+</div>
+<script>
+(function () {
+  var DEFAULTS = {
+    stack: 'have', updates: true, vulns: true, clusters: 5, nodes: 20, years: 5, mode: '24x7', salary: 350000,
+    clustersEnd: 5,
+    bonus: 15, overhead: 30, indexation: 10, diyPremium: 35,
+    buildTeam: 4, buildMonths: 12, maintFte: 2, automation: 50,
+    ownTeam: 15, ownMonths: 24,
+    secFte: 1.5, downCost: 300000, downDiyUpd: 6, downDiyInc: 2, downShUpd: 1, downShInc: 1,
+    minTeam: 2, rota: 5, allowance: 10,
+    migPd: 8, migParSh: 3, migParOther: 6,
+    mgmtVms: 5, vmCost: 150000, trainCost: 100000
+  };
+  var MASTERS = 3;
+  var DAYS = 220;
+  var INS_LIMIT = 2979000;
+  var INS_LOW = 0.30, INS_HIGH = 0.151;
+  var REF_CLUSTERS = 10;
+  function teamScale(n) { return Math.min(3, Math.max(0.25, Math.sqrt(n / REF_CLUSTERS))); }
+  function maintScale(n) { return n <= REF_CLUSTERS ? teamScale(n) : Math.min(2, Math.pow(n / REF_CLUSTERS, 0.25)); }
+  function autoScale(n, rate) { return autoRatio(n / REF_CLUSTERS, rate); }
+  function autoRatio(x, rate) {
+    if (rate === undefined) rate = S.automation;
+    if (x <= 1 || rate <= 0) return 1;
+    return Math.pow(x, Math.log(1 - Math.min(rate, 90) / 100) / Math.LN2);
+  }
+  var REF_NODES = 200;
+  function nodeRatio(cy, workers) { return Math.max(cy / REF_CLUSTERS, workers / REF_NODES); }
+  var COEF_DEFAULT = {
+    freq: [
+      { id: 'fK8s',   name: 'Обновлений Kubernetes в год', v: 3 },
+      { id: 'fOs',    name: 'Обновлений ОС на узлах в год', v: 4 },
+      { id: 'fAudit', name: 'Аудитов безопасности в год', v: 4 },
+      { id: 'fRe',    name: 'Пересозданий кластера в год', v: 1 },
+      { id: 'fPlat',  name: 'Обновлений самой платформы в год', v: 3 },
+      { id: 'fChurn', name: 'Доля worker-узлов, которые вводятся или выводятся за год', v: 0.3 },
+      { id: 'fNodeCfg', name: 'Изменений настроек узлов в год', v: 2 }
+    ],
+    once: [
+      { id: 'design',  name: 'Проектирование инфраструктуры', sh: 20, diy: 50 },
+      { id: 'install', name: 'Установка платформы', sh: 3, diy: 0 }
+    ],
+    create: [
+      { id: 'c1',  name: 'Развёртывание кластера', sh: 0.125, diy: 1 },
+      { id: 'c2',  name: 'Резервное копирование и восстановление', sh: 0.125, diy: 1 },
+      { id: 'c3',  name: 'Ролевой доступ к кластеру', sh: 0.125, diy: 1 },
+      { id: 'c4',  name: 'Интеграция с CI/CD', sh: 0.125, diy: 0.5 },
+      { id: 'c5',  name: 'Сетевые политики для приложений', sh: 1, diy: 3 },
+      { id: 'c6',  name: 'Параметры безопасности по лучшим практикам', sh: 0.25, diy: 3 },
+      { id: 'c7',  name: 'Система журналирования', sh: 0.25, diy: 1 },
+      { id: 'c8',  name: 'Система мониторинга', sh: 0.25, diy: 1 },
+      { id: 'c9',  name: 'Сканирование образов', sh: 0.25, diy: 2 },
+      { id: 'c10', name: 'Графический интерфейс', sh: 0.125, diy: 1 }
+    ],
+    ops: [
+      { id: 'o1', name: 'Тестирование обновления Kubernetes на кластере', f: 'fK8s', sh: 0.5, diy: 2, note: 'прогон обновления на конфигурации кластера; проверка новой версии сборки входит в сопровождение, у Штурвала её делает вендор' },
+      { id: 'o2', name: 'Обновление версии Kubernetes', f: 'fK8s', sh: 0.5, diy: 1, perNode: 0.125 },
+      { id: 'o3', name: 'Обновление ОС на узлах', f: 'fOs', sh: 0.5, diy: 1 },
+      { id: 'o4', name: 'Аудит конфигурации безопасности', f: 'fAudit', sh: 0, diy: 2, note: 'в Штурвале аудит выполняет платформа – CIS Benchmark и политики Kyverno' },
+      { id: 'o5', name: 'Настройка по результатам аудита', f: 'fAudit', sh: 2, diy: 2 },
+      { id: 'o6', name: 'Ввод или вывод одного узла', f: 'fChurn', sh: 0.05, diy: 0.5, perWorker: true },
+      { id: 'o7', name: 'Обновление ОС – добавка на каждый узел', f: 'fOs', sh: 0.01, diy: 0.05, perWorker: true },
+      { id: 'o8', name: 'Изменение настроек узлов: параметры ядра и sysctl, лейблы и taints, среда выполнения контейнеров, драйверы', f: 'fNodeCfg', sh: 0.01, diy: 0.5, perWorker: true },
+      { id: 'o9', name: 'Дрейф конфигурации узлов и ротация сертификатов kubelet', sh: 0, diy: 0.3, perWorker: true }
+    ],
+    plat: [
+      { id: 'p1', name: 'Обновление control plane платформы', f: 'fPlat', sh: 1, diy: 0 }
+    ],
+    unpl: [
+      { id: 'u1', name: 'Инциденты: диагностика и восстановление', sh: 4, diy: 10 },
+      { id: 'u3', name: 'Инциденты на каждый worker-узел', sh: 0.1, diy: 0.2, perWorker: true },
+      { id: 'u2', name: 'Запросы команд: доступы, неймспейсы, квоты, консультации', sh: 3, diy: 10 }
+    ]
+  };
+  var S = clone(DEFAULTS);
+  var C = clone(COEF_DEFAULT);
+  var tab = 'cat';
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function $(id) { return document.getElementById(id); }
+  function freq(id) { for (var i = 0; i < C.freq.length; i++) if (C.freq[i].id === id) return C.freq[i].v; return 0; }
+  function fq(id) {
+    if (!S.updates && (id === 'fK8s' || id === 'fOs' || id === 'fPlat')) return 0;
+    if (!S.vulns && id === 'fAudit') return 0;
+    return freq(id);
+  }
+  function sum(list, key) { return list.reduce(function (a, r) { return a + (+r[key] || 0); }, 0); }
+  function employeeCost(salary) {
+    var base = salary * 12;
+    var gross = base * (1 + S.bonus / 100);
+    var ins = INS_LOW * Math.min(gross, INS_LIMIT) + INS_HIGH * Math.max(0, gross - INS_LIMIT);
+    var over = base * S.overhead / 100;
+    return { base: base, gross: gross, ins: ins, over: over, total: gross + ins + over };
+  }
+  function createPd(k) { return sum(C.create, k); }
+  function perClusterOpsPd(k, npc, part) {
+    var wpc = Math.max(0, npc - MASTERS);
+    return C.ops.reduce(function (a, r) {
+      var f = r.f ? fq(r.f) : 1;
+      var nodeW = (r.perWorker ? (+r[k] || 0) * wpc : 0) + (k === 'diy' ? (r.perNode || 0) * npc : 0);
+      var clW = r.perWorker ? 0 : (+r[k] || 0);
+      return a + (part === 'cl' ? clW : part === 'node' ? nodeW : clW + nodeW) * f;
+    }, 0);
+  }
+  function plannedPd(key, cy, npc, clusterWork) {
+    var workers = cy * Math.max(0, npc - MASTERS);
+    var cl = function (k) { return clusterWork(k) + cy * perClusterOpsPd(k, npc, 'cl'); };
+    var nd = function (k) { return cy * perClusterOpsPd(k, npc, 'node'); };
+    var xc = cy / REF_CLUSTERS, xn = nodeRatio(cy, workers), half = S.automation / 2;
+    var part = function (fn, x) {
+      if (key !== 'diy') return autoRatio(x, half) * fn(key);
+      var base = fn('sh');
+      return autoRatio(x, half) * base + autoRatio(x) * Math.max(0, fn('diy') - base);
+    };
+    return part(cl, xc) + part(nd, xn);
+  }
+  function platPd(k) { return C.plat.reduce(function (a, r) { return a + (+r[k] || 0) * fq(r.f); }, 0); }
+  function oncePd(k) { return sum(C.once, k); }
+  function unplPd(k, wpc) { return C.unpl.reduce(function (a, r) { return a + (+r[k] || 0) * (r.perWorker ? wpc : 1); }, 0); }
+  function compute() {
+    var N = S.years;
+    var c0 = Math.max(1, Math.round(S.clusters));
+    var cN = Math.max(1, Math.round(S.clustersEnd || c0));
+    var nodesPerCluster = Math.max(0, S.nodes) / c0;
+    var npc = nodesPerCluster + MASTERS;
+    var emp = employeeCost(S.salary);
+    var empDiy = employeeCost(S.salary * (1 + S.diyPremium / 100));
+    var is24 = S.mode === '24x7';
+    var need = S.minTeam;
+    var dutyPay = is24 ? S.rota * S.allowance / 100 : 0;
+    var idx = 1 + S.indexation / 100;
+    var cats = ['ops', 'unpl', 'topup', 'duty', 'build', 'mig', 'infra', 'train', 'maint', 'sec', 'down'];
+    var sc = {
+      diy: { name: 'Своя сборка K8s', years: [], tot: {}, fte: [] },
+      own: { name: 'Свой «Штурвал»', years: [], tot: {}, fte: [] },
+      sh:  { name: 'Штурвал', years: [], tot: {}, fte: [] }
+    };
+    Object.keys(sc).forEach(function (k) { sc[k].ex = {}; cats.forEach(function (c) { sc[k].tot[c] = 0; sc[k].ex[c] = []; }); sc[k].total = 0; });
+    var prev = 0, clustersByYear = [], floorSh = false;
+    for (var y = 1; y <= N; y++) {
+      var cy = Math.round(N === 1 ? c0 : c0 + (cN - c0) * (y - 1) / (N - 1));
+      var fresh = Math.max(0, cy - prev);
+      prev = cy;
+      clustersByYear.push(cy);
+      var k = Math.pow(idx, y - 1);
+      var costSh = emp.total * k, costDiy = empDiy.total * k;
+      var opsFte = function (key) {
+        var inPlace = key === 'diy' && S.stack === 'have' && y === 1;
+        var created = inPlace ? 0 : fresh;
+        var existing = cy - created;
+        var planned = plannedPd(key, cy, npc, function (k) { return created * createPd(k) + existing * freq('fRe') * createPd(k); });
+        var pd = (y === 1 && !inPlace ? oncePd(key) : 0) + platPd(key) + planned;
+        return pd / DAYS;
+      };
+      var fSh = opsFte('sh'), fDiy = opsFte('diy');
+      var mStart = (y - 1) * 12, mEnd = y * 12;
+      var buildShare = S.stack === 'have' ? 0 : Math.max(0, Math.min(mEnd, S.buildMonths) - mStart) / 12;
+      var maintShare = S.stack === 'rebuild' ? 1 : 1 - buildShare;
+      var buildF = S.buildTeam * teamScale(c0);
+      var maintF = S.updates ? S.maintFte * maintScale(cy) : 0;
+      var secF = S.vulns ? S.secFte * Math.min(3, Math.max(0.25, Math.sqrt(Math.max(cy / REF_CLUSTERS, cy * nodesPerCluster / 200)))) : 0;
+      var uSh = cy * unplPd('sh', nodesPerCluster) / DAYS, uDiy = cy * unplPd('diy', nodesPerCluster) / DAYS;
+      var team = function (pool) {
+        return { extra: Math.max(0, need - pool) };
+      };
+      var overlap = function (a, b) { return Math.max(0, Math.min(mEnd, b) - Math.max(mStart, a)) / 12; };
+      var inYear = function (month) { return month >= mStart && month < mEnd; };
+      var hasClusters = S.stack === 'have' || S.stack === 'rebuild';
+      var movePd = function () { return cy * S.migPd / DAYS; };
+      var oldOps = (plannedPd('diy', cy, npc, function () { return 0; }) + cy * unplPd('diy', nodesPerCluster)) / DAYS;
+      var migShMove = hasClusters && y === 1 ? movePd() : 0;
+      var migShPar = hasClusters ? overlap(0, S.migParSh) : 0;
+      var migShFte = migShMove + migShPar * (oldOps + maintF);
+      var migShCost = (migShMove + migShPar * oldOps) * costSh + migShPar * maintF * costDiy;
+      var migDiyMove = S.stack === 'rebuild' && inYear(S.buildMonths) ? movePd() : 0;
+      var migDiyPar = S.stack === 'rebuild' ? overlap(S.buildMonths, S.buildMonths + S.migParOther) : 0;
+      var migDiyFte = migDiyMove + migDiyPar * maintF;
+      var migDiyCost = migDiyMove * costSh + migDiyPar * maintF * costDiy;
+      var devShare = overlap(0, S.ownMonths);
+      var liveShare = 1 - devShare;
+      var migOwnMove = inYear(S.ownMonths) ? movePd() : 0;
+      var migOwnPar = overlap(S.ownMonths, S.ownMonths + S.migParOther);
+      var migOwnFte = migOwnMove + migOwnPar * (fDiy + uDiy);
+      var migOwnCost = migOwnFte * costSh;
+      var tSh = team(fSh + uSh);
+      if (tSh.extra > 0) floorSh = true;
+      var tDiy = team(fDiy + uDiy + maintF * maintShare);
+      var tOwn = team(devShare * (fDiy + uDiy) + liveShare * (fSh + uSh) + S.ownTeam);
+      var infraSh = S.mgmtVms * S.vmCost;
+      var trainSh = y === 1 ? Math.max(S.minTeam, Math.ceil(fSh + uSh + tSh.extra)) * S.trainCost : 0;
+      var downDiyH = (S.updates ? S.downDiyUpd : 0) + S.downDiyInc, downShH = (S.updates ? S.downShUpd : 0) + S.downShInc;
+      var rows = {
+        sh:  { ops: fSh * costSh, unpl: uSh * costSh, topup: tSh.extra * costSh, duty: dutyPay * costSh, build: 0, mig: migShCost,
+               infra: infraSh, train: trainSh, maint: 0, sec: 0, down: downShH * S.downCost },
+        diy: { ops: fDiy * costSh, unpl: uDiy * costSh, topup: tDiy.extra * costSh, duty: dutyPay * costSh, build: buildF * buildShare * costDiy,
+               mig: migDiyCost, infra: 0, train: 0, maint: maintF * maintShare * costDiy, sec: secF * costDiy, down: downDiyH * S.downCost },
+        own: { ops: (devShare * fDiy + liveShare * fSh) * costSh, unpl: (devShare * uDiy + liveShare * uSh) * costSh,
+               topup: tOwn.extra * costSh, duty: dutyPay * costSh, build: S.ownTeam * costDiy, mig: migOwnCost,
+               infra: liveShare * infraSh, train: 0, maint: 0,
+               sec: secF * costDiy, down: (devShare * downDiyH + liveShare * downShH) * S.downCost }
+      };
+      var X = function (f, rate) { return f.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' FTE × ' + (rate / 1e6).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' млн ₽'; };
+      var both = function (a, ra, b, rb, bNote) { return [a > 0 ? X(a, ra) : '', b > 0 ? X(b, rb) + (bNote || '') : ''].filter(Boolean).join(' + '); };
+      var dutyT = S.rota + ' чел. в ротации × ' + S.allowance + '% × ' + rub(costSh);
+      var trainN = Math.max(S.minTeam, Math.ceil(fSh + uSh + tSh.extra));
+      var exp = {
+        sh:  { ops: X(fSh, costSh), unpl: X(uSh, costSh), topup: X(tSh.extra, costSh), duty: dutyT,
+               mig: both(migShMove + migShPar * oldOps, costSh, migShPar * maintF, costDiy, ' сопровождение старой сборки'),
+               infra: S.mgmtVms + ' ВМ × ' + rub(S.vmCost), train: trainN + ' инж. × ' + rub(S.trainCost), down: pdFmt(downShH) + ' ч × ' + rub(S.downCost) },
+        diy: { ops: X(fDiy, costSh), unpl: X(uDiy, costSh), topup: X(tDiy.extra, costSh), duty: dutyT, build: X(buildF * buildShare, costDiy),
+               mig: both(migDiyMove, costSh, migDiyPar * maintF, costDiy, ' сопровождение старой сборки'),
+               maint: X(maintF * maintShare, costDiy), sec: X(secF, costDiy), down: pdFmt(downDiyH) + ' ч × ' + rub(S.downCost) },
+        own: { ops: X(devShare * fDiy + liveShare * fSh, costSh), unpl: X(devShare * uDiy + liveShare * uSh, costSh), topup: X(tOwn.extra, costSh), duty: dutyT,
+               build: X(S.ownTeam, costDiy), mig: X(migOwnFte, costSh), infra: pdFmt(liveShare) + ' года × ' + S.mgmtVms + ' ВМ × ' + rub(S.vmCost),
+               sec: X(secF, costDiy), down: pdFmt(devShare * downDiyH + liveShare * downShH) + ' ч × ' + rub(S.downCost) }
+      };
+      var ftes = {
+        sh: fSh + uSh + tSh.extra,
+        diy: fDiy + uDiy + tDiy.extra + buildF * buildShare + maintF * maintShare + secF,
+        own: devShare * (fDiy + uDiy) + liveShare * (fSh + uSh) + tOwn.extra + S.ownTeam + secF
+      };
+      Object.keys(sc).forEach(function (key) {
+        var r = rows[key], t = 0;
+        cats.forEach(function (c) { sc[key].tot[c] += r[c]; t += r[c]; if (r[c] > 0.5) sc[key].ex[c].push({ y: y, t: exp[key][c] || '', v: r[c] }); });
+        sc[key].years.push(t);
+        sc[key].fte.push(ftes[key]);
+        sc[key].total += t;
+      });
+    }
+    return { sc: sc, emp: emp, empDiy: empDiy, clustersByYear: clustersByYear, npc: npc, N: N, floorSh: floorSh,
+             maxNodes: Math.max.apply(null, clustersByYear) * nodesPerCluster };
+  }
+  function mln(x) {
+    var v = x / 1e6, a = Math.abs(v);
+    var d = a >= 100 ? 0 : 1;
+    return v.toLocaleString('ru-RU', { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+  function fmtM(x) { return mln(x) + ' млн ₽'; }
+  function fte(x) { return x.toLocaleString('ru-RU', { maximumFractionDigits: 1, minimumFractionDigits: 1 }); }
+  function pdFmt(v) { var d = v < 1 ? 2 : 1; return v.toLocaleString('ru-RU', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+  function rub(x) { return Math.round(x).toLocaleString('ru-RU') + ' ₽'; }
+  function engWord(n) { var r = Math.round(n * 10) / 10; if (r % 1) return 'инженера'; var a = r % 10, b = r % 100; return a === 1 && b !== 11 ? 'инженер' : (a >= 2 && a <= 4 && (b < 12 || b > 14) ? 'инженера' : 'инженеров'); }
+  function ownTermText() { var y = S.ownMonths / 12; return 'не меньше ' + (y % 1 ? S.ownMonths + ' мес.' : y + ' лет'); }
+  function yearsWord(n) { return n === 1 ? 'год' : (n < 5 ? 'года' : 'лет'); }
+  var CAT_NAMES = {
+    ops: ['Плановая эксплуатация', 'Создание, обновление, аудит и пересоздание кластеров'],
+    unpl: ['Инциденты и запросы команд', 'Неплановая работа на кластерах'],
+    topup: ['Добор до минимальной команды', 'Люди сверх реальной нагрузки, чтобы команда была не меньше минимальной'],
+    duty: ['Доплата за дежурства 24×7', 'Ротация общая с инфраструктурой – платим только доплату'],
+    build: ['Создание сборки / разработка платформы', 'До выхода в прод или весь период'],
+    mig: ['Миграция на платформу', 'Перенос кластеров и параллельная работа старой сборки'],
+    infra: ['Инфраструктура кластера управления', 'Отдельные виртуальные машины под управляющий кластер платформы'],
+    train: ['Обучение команды', 'Разово на старте: курс по платформе на каждого инженера'],
+    maint: ['Сопровождение сборки', 'Совместимость компонентов при обновлениях'],
+    sec: ['Безопасность', 'Разбор и закрытие уязвимостей'],
+    down: ['Простои', 'Часы простоя × стоимость часа']
+  };
+  var ORDER = ['diy', 'sh', 'own'];
+  var last;
+  var srTimer = null, srFirst = true;
+  function announce(text) {
+    if (srFirst) { srFirst = false; return; }
+    clearTimeout(srTimer);
+    srTimer = setTimeout(function () { $('sr-status').textContent = text; }, 800);
+  }
+  function render() {
+    var R = compute(); last = R;
+    var sh = R.sc.sh, diy = R.sc.diy, own = R.sc.own, N = R.N;
+    var freed = diy.total - sh.total;
+    announce((freed >= 0 ? 'Высвобождаемый бюджет за ' : 'Своя сборка дешевле Штурвала за ') + N + ' ' + yearsWord(N) + ': ' + fmtM(Math.abs(freed)) +
+      '. Своя сборка ' + fmtM(diy.total) + ', Штурвал без лицензии ' + fmtM(sh.total) + '.');
+    $('hero-cap').textContent = 'Высвобождаемый бюджет за ' + N + ' ' + yearsWord(N);
+    var hn = $('hero-num');
+    if (freed > 0) {
+      hn.classList.remove('neg');
+      $('hero-big').innerHTML = mln(freed) + '<small>млн ₽</small>';
+      $('hero-year').innerHTML = mln(freed / N) + '<small>млн ₽ в год</small>';
+      $('hero-year').hidden = false;
+      $('hero-text').innerHTML = 'Столько своя сборка стоит дороже эксплуатации на Штурвале. Сравните эту сумму со стоимостью лицензии Штурвала – её рассчитает менеджер под ваш сценарий.';
+    } else {
+      hn.classList.add('neg');
+      var loss = -freed;
+      $('hero-big').innerHTML = '−' + mln(loss) + '<small>млн ₽</small>';
+      $('hero-year').innerHTML = '−' + mln(loss / N) + '<small>млн ₽ в год</small>';
+      $('hero-year').hidden = false;
+      var extras = sh.tot.mig > 0 && sh.tot.infra > 0 ? 'проект миграции и кластер управления Штурвала (' + fmtM(sh.tot.mig) + ' и ' + fmtM(sh.tot.infra) + ') могут стоить'
+                 : sh.tot.mig > 0 ? 'проект миграции (' + fmtM(sh.tot.mig) + ') может стоить'
+                 : sh.tot.infra > 0 ? 'кластер управления Штурвала (' + fmtM(sh.tot.infra) + ') может стоить' : '';
+      $('hero-text').innerHTML = extras
+        ? 'При такой небольшой конфигурации ' + extras + ' дороже, чем выгода от Штурвала: своя сборка выходит дешевле на ' + fmtM(loss) + ' за ' + N + ' ' + yearsWord(N) + '. Расскажите о вашем сценарии – посчитаем точнее.'
+        : 'При таких параметрах своя сборка обходится дешевле эксплуатации на Штурвале на ' + fmtM(loss) + ' за ' + N + ' ' + yearsWord(N) + '. Так бывает на небольшом масштабе или без системных обновлений и закрытия уязвимостей. Расскажите о вашем сценарии – посчитаем точнее.';
+    }
+    $('bars-cap').textContent = 'за ' + N + ' ' + yearsWord(N) + ', без лицензии Штурвала';
+    $('mbar-cap').textContent = 'Высвобождается за ' + N + ' ' + yearsWord(N);
+    $('mbar-val').innerHTML = (freed < 0 ? '−' : '') + mln(Math.abs(freed)) + '<small>млн ₽ · ' + (freed < 0 ? '−' : '') + mln(Math.abs(freed) / N) + ' в год</small>';
+    var max = Math.max(diy.total, own.total, sh.total) || 1;
+    $('bars').innerHTML = ORDER.map(function (k) {
+      var s = R.sc[k];
+      var sub = k === 'sh' ? (R.floorSh ? 'Минимальная команда: ' + fte(S.minTeam).replace(',0', '') + ' ' + engWord(S.minTeam) + ' – меньше не бывает даже при малой нагрузке' : 'Эксплуатация: люди, дежурства, простои') :
+                k === 'diy' ? 'Создание и сопровождение сборки, эксплуатация, ИБ' :
+                'Разработка ' + ownTermText() + ', пока её нет – кластеры вручную; затем эксплуатация и ИБ';
+      var h = (s.total / max * 100 * 0.86).toFixed(1);
+      return '<div class="bar-row ' + k + '" data-k="' + k + '" tabindex="0">' +
+        '<div class="bar-track"><div class="bar-val">' + fmtM(s.total) + '</div><div class="bar-fill" style="height:' + h + '%"></div></div>' +
+        '<div class="bar-name">' + s.name + '</div>' +
+        '<div class="bar-sub">' + sub + '</div></div>';
+    }).join('');
+    var avg = function (a) { return a.reduce(function (x, y) { return x + y; }, 0) / a.length; };
+    $('kpis').innerHTML =
+      '<div class="kpi"><b>' + fte(avg(diy.fte)) + '</b><span>инженеров в среднем на своей сборке</span></div>' +
+      '<div class="kpi sh"><b>' + fte(avg(sh.fte)) + '</b><span>инженеров со Штурвалом</span></div>' +
+      '<div class="kpi"><b>' + fte(avg(own.fte)) + '</b><span>инженеров на своей платформе</span></div>';
+    $('ce').hidden = !(R.maxNodes <= 10);
+    $('emp-cost-note').innerHTML = 'Полная стоимость инженера в 1-й год: ' + fmtM(R.emp.total) +
+      ' (зарплата с премиями ' + fmtM(R.emp.gross) + ', взносы ' + fmtM(R.emp.ins) + ', накладные ' + fmtM(R.emp.over) +
+      ').';
+    $('stack-hint').textContent = STACK[S.stack][1];
+    var cMax = Math.max.apply(null, R.clustersByYear);
+    var x2 = function (v) { return v.toLocaleString('ru-RU', { maximumFractionDigits: 2 }); };
+    var xnMax = nodeRatio(cMax, R.maxNodes);
+    $('auto-hint').textContent = 'До 10 кластеров команда работает руками. Дальше каждое удвоение числа кластеров сокращает на эту долю разрыв в плановой трудоёмкости между своей сборкой и Штурвалом – ниже уровня Штурвала своя сборка не опускается. Штурвал на удвоении экономит вдвое меньше: рутину и так автоматизирует платформа. Работу на узлах – ввод и вывод, ОС, настройки, дрейф – автоматизируют и при большом числе узлов: для неё порог – 10 кластеров или 200 worker-узлов, что наступит раньше. Инциденты и запросы команд не автоматизируются.' +
+      (cMax > REF_CLUSTERS ? ' Сейчас при ' + cMax + ' кластерах от разрыва остаётся ×' + x2(autoScale(cMax)) + ', трудоёмкость Штурвала на кластер – ×' + x2(autoScale(cMax, S.automation / 2)) + '.' : '') +
+      (xnMax > 1 ? ' Работа на узлах при ' + Math.round(R.maxNodes).toLocaleString('ru-RU') + ' worker-узлах: от разрыва остаётся ×' + x2(autoRatio(xnMax)) + ', у Штурвала – ×' + x2(autoRatio(xnMax, S.automation / 2)) + '.' : '');
+    var w = $('ops-warn');
+    if (S.updates && S.vulns) { w.hidden = true; }
+    else {
+      w.hidden = false;
+      w.textContent = (!S.updates && !S.vulns ? 'Без обновлений и закрытия уязвимостей' : !S.updates ? 'Без обновлений' : 'Без закрытия уязвимостей') +
+        ' своя сборка выглядит дешевле, но копит риски: известные уязвимости остаются открытыми, версии устаревают, следующее обновление превращается в проект. В Штурвале обновления и патчи безопасности входят в продукт.';
+    }
+    renderTrust(R);
+    renderTable(R);
+    renderSummary(R);
+    renderPops();
+    renderDrawer();
+  }
+  function howText(c, k) {
+    var n = function (v) { return String(v).replace('.', ','); };
+    var eng = '';
+    var T = {
+      ops: {
+        diy: 'Операции из таблицы трудоёмкости – создание кластеров, обновления, аудиты, работа с узлами: человеко-дни × частота × кластеры. С ростом числа кластеров часть рутины автоматизируется.',
+        sh: 'Те же операции по коэффициентам Штурвала: большую часть работы делает платформа.',
+        own: 'До запуска своей платформы – как в своей сборке, после – как в Штурвале.'
+      },
+      unpl: 'Инциденты и запросы команд: человеко-дни в год на кластер и на узел из таблицы. Не автоматизируются.',
+      topup: 'Если реальной нагрузки меньше, чем на ' + n(S.minTeam) + ' инженеров, добираем команду до минимума: отпуска, больничные и передача знаний никуда не деваются.',
+      duty: S.mode === '24x7' ? 'Режим 24×7: ' + S.rota + ' человек в общей ротации с инфраструктурой получают доплату ' + S.allowance + '% к стоимости инженера. Отдельных дежурных не нанимаем.' : 'В режиме 8×5 дежурств нет.',
+      build: {
+        diy: 'Команда создания сборки: ' + n(S.buildTeam) + ' человека на 10 кластеров, для другого масштаба пересчитываем по корню. Работает первые ' + S.buildMonths + ' мес., пока сборка не вышла в прод.',
+        own: 'Команда разработки своей платформы: ' + S.ownTeam + ' человек весь период. До запуска – разработка, после – развитие и обновления.'
+      },
+      mig: {
+        sh: 'Перенос кластеров на Штурвал (' + n(S.migPd) + ' человеко-дней на кластер) и ' + S.migParSh + ' мес. параллельной работы старой сборки, пока идёт переход. Только если кластеры уже есть.',
+        diy: 'При переделке: перенос кластеров на новую сборку и ' + S.migParOther + ' мес. параллельной работы старой.',
+        own: 'После запуска своей платформы: перенос кластеров (' + n(S.migPd) + ' человеко-дней на кластер) и ' + S.migParOther + ' мес. параллельной работы.'
+      },
+      infra: {
+        sh: 'Управляющий кластер живёт на отдельных ВМ: ' + S.mgmtVms + ' ВМ × стоимость ВМ в год.',
+        own: 'У своей платформы после запуска тоже есть управляющий кластер: те же ВМ.'
+      },
+      train: 'Разово в первый год: курс по Штурвалу на каждого инженера эксплуатации.',
+      maint: 'Проверка совместимости компонентов сборки при каждом обновлении: ' + n(S.maintFte) + ' FTE на 10 кластеров. Сборка одна на все кластеры, поэтому команда растёт медленнее их числа. В Штурвале это работа вендора.',
+      sec: 'Разбор и закрытие уязвимостей: ' + n(S.secFte) + ' FTE на 10 кластеров или 200 узлов, с ростом пересчитываем по корню. В Штурвале входит в продукт.',
+      down: 'Часы простоя в год из-за обновлений и инцидентов × стоимость часа простоя для бизнеса.'
+    };
+    var t = T[c];
+    return typeof t === 'string' ? t : (t && t[k]) || '';
+  }
+  function detail(c, y) {
+    var R = last, N = R.N, cy = R.clustersByYear[y - 1], prev = y > 1 ? R.clustersByYear[y - 2] : 0;
+    var c0 = R.clustersByYear[0], wpc = Math.max(0, S.nodes) / c0, npc = R.npc;
+    var kf = Math.pow(1 + S.indexation / 100, y - 1), costSh = R.emp.total * kf, costDiy = R.empDiy.total * kf;
+    var mStart = (y - 1) * 12, mEnd = y * 12;
+    var overlap = function (a, b) { return Math.max(0, Math.min(mEnd, b) - Math.max(mStart, a)) / 12; };
+    var inYear = function (m) { return m >= mStart && m < mEnd; };
+    var devShare = overlap(0, S.ownMonths), liveShare = 1 - devShare;
+    var fresh = Math.max(0, cy - prev);
+    var mix = function (d, s) { return devShare * d + liveShare * s; };
+    var opsParts = function (key) {
+      var inPlace = key === 'diy' && S.stack === 'have' && y === 1;
+      var created = inPlace ? 0 : fresh, existing = cy - created;
+      var cw = function (k) { return created * createPd(k) + existing * freq('fRe') * createPd(k); };
+      var p = { once: y === 1 && !inPlace ? oncePd(key) : 0, plat: platPd(key), create: created * createPd(key),
+                re: existing * freq('fRe') * createPd(key), rows: {}, created: created, existing: existing };
+      var raw = p.create + p.re;
+      C.ops.forEach(function (r) {
+        var f = r.f ? fq(r.f) : 1;
+        var v = ((r.perWorker ? 0 : (+r[key] || 0)) + (r.perWorker ? (+r[key] || 0) * wpc : 0) + (key === 'diy' ? (r.perNode || 0) * npc : 0)) * f * cy;
+        p.rows[r.id] = v; raw += v;
+      });
+      p.planned = plannedPd(key, cy, npc, cw);
+      p.auto = p.planned - raw;
+      p.pd = p.once + p.plat + p.planned;
+      return p;
+    };
+    var unplParts = function (key) {
+      var o = {}; C.unpl.forEach(function (r) { o[r.id] = (+r[key] || 0) * (r.perWorker ? wpc : 1) * cy; });
+      o.pd = cy * unplPd(key, wpc); return o;
+    };
+    var oS = opsParts('sh'), oD = opsParts('diy'), uS = unplParts('sh'), uD = unplParts('diy');
+    var fSh = oS.pd / DAYS, fDiy = oD.pd / DAYS, ufSh = uS.pd / DAYS, ufDiy = uD.pd / DAYS;
+    var buildShare = S.stack === 'have' ? 0 : Math.max(0, Math.min(mEnd, S.buildMonths) - mStart) / 12;
+    var maintShare = S.stack === 'rebuild' ? 1 : 1 - buildShare;
+    var maintF = S.updates ? S.maintFte * maintScale(cy) : 0;
+    var secScale = Math.min(3, Math.max(0.25, Math.sqrt(Math.max(cy / REF_CLUSTERS, cy * wpc / 200))));
+    var secF = S.vulns ? S.secFte * secScale : 0;
+    var V = function (diy, sh, own) { return { diy: diy, sh: sh, own: own }; };
+    var rateRow = ['Стоимость инженера в этом году', 'Зарплата, премии, взносы и накладные' + (y > 1 ? ', индексация ' + S.indexation + '% в год' : ''), V(costSh, costSh, costSh), 'm'];
+    var rateDiyRow = ['Стоимость платформенного инженера', 'С надбавкой ' + S.diyPremium + '% за редкую экспертизу' + (y > 1 ? ', индексация ' + S.indexation + '% в год' : ''), V(costDiy, null, costDiy), 'm'];
+    var L = [];
+    if (c === 'ops') {
+      if (devShare > 0 && devShare < 1) L.push(['Своя платформа: доля года до запуска', 'До запуска кластеры обслуживаются как в своей сборке, после – как в Штурвале', V(null, null, devShare * 12), 'mo']);
+      if (oS.once || oD.once) L.push(['Проектирование и установка', 'Разово в 1-й год', V(oD.once, oS.once, mix(oD.once, oS.once)), 'pd']);
+      L.push(['Создание новых кластеров', 'Своя сборка ' + n2(createPd('diy')) + ', Штурвал ' + n2(createPd('sh')) + ' ч.д. на кластер – сумма строк «Создание кластера» в таблице трудоёмкости. Кластеров: ' + fresh + (oD.created !== fresh ? ' (своя сборка – 0: кластеры уже есть)' : '') + ' × трудоёмкость создания', V(oD.create, oS.create, mix(oD.create, oS.create)), 'pd']);
+      L.push(['Пересоздание кластеров', 'Кластеры на начало года × ' + n2(freq('fRe')) + ' раз в год × трудоёмкость создания', V(oD.re, oS.re, mix(oD.re, oS.re)), 'pd']);
+      C.ops.forEach(function (r) {
+        var d = oD.rows[r.id], s = oS.rows[r.id];
+        if (!d && !s) return;
+        var f = r.f ? fq(r.f) : 1;
+        var how = 'Своя сборка ' + n2(+r.diy) + ', Штурвал ' + n2(+r.sh) + ' ч.д. ' + (r.perWorker ? 'на worker-узел × ' + n2(Math.round(wpc * 10) / 10) + ' узл. в кластере' : 'на кластер') +
+          (r.perNode ? ' (своя сборка ещё ' + n2(r.perNode) + ' ч.д. × ' + n2(Math.round(npc * 10) / 10) + ' узл. с master)' : '') + ' × ' + n2(f) + ' в год × ' + cy + ' кл.' + (r.note ? '. ' + r.note[0].toUpperCase() + r.note.slice(1) : '');
+        L.push([r.name, how, V(d, s, mix(d, s)), 'pd']);
+      });
+      if (oS.plat || oD.plat) L.push(['Обновление самой платформы', n2(fq('fPlat')) + ' в год', V(oD.plat, oS.plat, mix(oD.plat, oS.plat)), 'pd']);
+      L.push(['Автоматизация рутины', 'При ' + cy + ' кл. и ' + Math.round(cy * wpc).toLocaleString('ru-RU') + ' worker-узлах; до 10 кластеров и 200 узлов – 0', V(oD.auto, oS.auto, mix(oD.auto, oS.auto)), 'pd']);
+      L.push(['Итого трудоёмкость за год', '', V(oD.pd, oS.pd, mix(oD.pd, oS.pd)), 'pdb']);
+      L.push(['Инженеров', 'Человеко-дни ÷ ' + DAYS + ' рабочих дней', V(fDiy, fSh, mix(fDiy, fSh)), 'fte']);
+      L.push(rateRow);
+      L.push(['Сумма за год', 'Инженеры × стоимость инженера', V(fDiy * costSh, fSh * costSh, mix(fDiy, fSh) * costSh), 'sum']);
+    } else if (c === 'unpl') {
+      if (devShare > 0 && devShare < 1) L.push(['Своя платформа: доля года до запуска', 'До запуска – коэффициенты своей сборки, после – Штурвала', V(null, null, devShare * 12), 'mo']);
+      C.unpl.forEach(function (r) {
+        L.push([r.name, (r.perWorker ? n2(+r.diy) + ' / ' + n2(+r.sh) + ' ч.д. на worker-узел × ' + Math.round(cy * wpc).toLocaleString('ru-RU') + ' узл.' : n2(+r.diy) + ' / ' + n2(+r.sh) + ' ч.д. на кластер × ' + cy + ' кл.'),
+                V(uD[r.id], uS[r.id], mix(uD[r.id], uS[r.id])), 'pd']);
+      });
+      L.push(['Итого трудоёмкость за год', 'Не автоматизируется', V(uD.pd, uS.pd, mix(uD.pd, uS.pd)), 'pdb']);
+      L.push(['Инженеров', 'Человеко-дни ÷ ' + DAYS + ' рабочих дней', V(ufDiy, ufSh, mix(ufDiy, ufSh)), 'fte']);
+      L.push(rateRow);
+      L.push(['Сумма за год', 'Инженеры × стоимость инженера', V(ufDiy * costSh, ufSh * costSh, mix(ufDiy, ufSh) * costSh), 'sum']);
+    } else if (c === 'topup') {
+      var poolSh = fSh + ufSh, poolDiy = fDiy + ufDiy + maintF * maintShare, poolOwn = mix(fDiy + ufDiy, fSh + ufSh) + S.ownTeam;
+      L.push(['Минимальная команда', 'Отпуска, больничные, передача знаний – меньше людей не бывает', V(S.minTeam, S.minTeam, S.minTeam), 'fte']);
+      L.push(['Плановая и неплановая работа', 'Из статей выше', V(fDiy + ufDiy, poolSh, mix(fDiy + ufDiy, fSh + ufSh)), 'fte']);
+      L.push(['Засчитываются в команду', 'Своя сборка – инженеры сопровождения, своя платформа – разработчики', V(maintF * maintShare, null, S.ownTeam), 'fte']);
+      var eD = Math.max(0, S.minTeam - poolDiy), eS = Math.max(0, S.minTeam - poolSh), eO = Math.max(0, S.minTeam - poolOwn);
+      L.push(['Добор до минимума', 'Минимальная команда − нагрузка, если нагрузка меньше', V(eD, eS, eO), 'fte']);
+      L.push(rateRow);
+      L.push(['Сумма за год', 'Добор × стоимость инженера', V(eD * costSh, eS * costSh, eO * costSh), 'sum']);
+    } else if (c === 'duty') {
+      var dp = S.mode === '24x7' ? S.rota * S.allowance / 100 : 0;
+      L.push(['Людей в ротации', 'Общая ротация с инфраструктурой', V(S.rota, S.rota, S.rota), 'n']);
+      L.push(['Доплата за дежурства', '% к стоимости инженера', V(S.allowance, S.allowance, S.allowance), 'pct']);
+      L.push(['В пересчёте на инженеров', 'Люди × доплата', V(dp, dp, dp), 'fte']);
+      L.push(rateRow);
+      L.push(['Сумма за год', '', V(dp * costSh, dp * costSh, dp * costSh), 'sum']);
+    } else if (c === 'build') {
+      L.push(['Команда', 'Своя сборка – ' + n2(S.buildTeam) + ' чел. на 10 кластеров × ' + n2(Math.round(teamScale(c0) * 100) / 100) + ' (корень из кластеры / 10)', V(S.buildTeam * teamScale(c0), null, S.ownTeam), 'fte']);
+      L.push(['Месяцев работы в этом году', 'Своя сборка – первые ' + S.buildMonths + ' мес.; своя платформа – весь период', V(buildShare * 12, null, 12), 'mo']);
+      L.push(['Инженеров', 'Команда × месяцы ÷ 12', V(S.buildTeam * teamScale(c0) * buildShare, null, S.ownTeam), 'fte']);
+      L.push(rateDiyRow);
+      L.push(['Сумма за год', '', V(S.buildTeam * teamScale(c0) * buildShare * costDiy, null, S.ownTeam * costDiy), 'sum']);
+    } else if (c === 'mig') {
+      var hasCl = S.stack === 'have' || S.stack === 'rebuild';
+      var move = cy * S.migPd / DAYS;
+      var oldOps = (plannedPd('diy', cy, npc, function () { return 0; }) + cy * unplPd('diy', wpc)) / DAYS;
+      var shMove = hasCl && y === 1 ? move : 0, shPar = hasCl ? overlap(0, S.migParSh) : 0;
+      var dMove = S.stack === 'rebuild' && inYear(S.buildMonths) ? move : 0, dPar = S.stack === 'rebuild' ? overlap(S.buildMonths, S.buildMonths + S.migParOther) : 0;
+      var oMove = inYear(S.ownMonths) ? move : 0, oPar = overlap(S.ownMonths, S.ownMonths + S.migParOther);
+      L.push(['Перенос кластеров', cy + ' кл. × ' + n2(S.migPd) + ' ч.д. ÷ ' + DAYS + ' дней', V(dMove, shMove, oMove), 'fte']);
+      L.push(['Параллельная работа старой сборки', 'Месяцев в этом году', V(dPar * 12, shPar * 12, oPar * 12), 'mo']);
+      L.push(['Эксплуатация старой сборки в это время', 'Плановая работа, инциденты и запросы × доля года', V(null, shPar * oldOps, oPar * (fDiy + ufDiy)), 'fte']);
+      L.push(['Сопровождение старой сборки в это время', 'По ставке платформенного инженера', V(dPar * maintF, shPar * maintF, null), 'fte']);
+      L.push(rateRow); L.push(rateDiyRow);
+      L.push(['Сумма за год', '', V(dMove * costSh + dPar * maintF * costDiy, (shMove + shPar * oldOps) * costSh + shPar * maintF * costDiy, (oMove + oPar * (fDiy + ufDiy)) * costSh), 'sum']);
+    } else if (c === 'infra') {
+      L.push(['ВМ под кластер управления', '', V(null, S.mgmtVms, S.mgmtVms), 'n']);
+      L.push(['Стоимость одной ВМ в год', 'Без индексации', V(null, S.vmCost, S.vmCost), 'rub']);
+      L.push(['Месяцев работы в этом году', 'Своя платформа – после запуска', V(null, 12, liveShare * 12), 'mo']);
+      L.push(['Сумма за год', '', V(null, S.mgmtVms * S.vmCost, liveShare * S.mgmtVms * S.vmCost), 'sum']);
+    } else if (c === 'train') {
+      var trN = y === 1 ? Math.max(S.minTeam, Math.ceil(fSh + ufSh + Math.max(0, S.minTeam - fSh - ufSh))) : 0;
+      L.push(['Инженеров эксплуатации', 'Вся команда, не меньше минимальной; только в 1-й год', V(null, trN, null), 'n']);
+      L.push(['Курс на одного инженера', '', V(null, S.trainCost, null), 'rub']);
+      L.push(['Сумма за год', '', V(null, trN * S.trainCost, null), 'sum']);
+    } else if (c === 'maint') {
+      L.push(['Сопровождение на 10 кластеров', S.updates ? '' : 'Обновлений нет – сопровождать нечего', V(S.updates ? S.maintFte : 0, null, null), 'fte']);
+      L.push(['Масштаб при ' + cy + ' кл.', 'Ниже 10 – по корню, выше – по корню 4-й степени, не больше ×2', V(maintScale(cy), null, null), 'x']);
+      L.push(['Месяцев работы в этом году', 'Пока строится новая сборка, её сменяет команда создания' + (S.stack === 'rebuild' ? '; при переделке старую сопровождаем весь год' : ''), V(maintShare * 12, null, null), 'mo']);
+      L.push(['Инженеров', '', V(maintF * maintShare, null, null), 'fte']);
+      L.push(rateDiyRow);
+      L.push(['Сумма за год', '', V(maintF * maintShare * costDiy, null, null), 'sum']);
+    } else if (c === 'sec') {
+      L.push(['Команда ИБ на 10 кластеров или 200 узлов', S.vulns ? '' : 'Уязвимости не закрываются – команды нет', V(S.vulns ? S.secFte : 0, null, S.vulns ? S.secFte : 0), 'fte']);
+      L.push(['Масштаб', 'Корень из большего: ' + cy + ' кл. / 10 или ' + Math.round(cy * wpc).toLocaleString('ru-RU') + ' узл. / 200; от ×0,25 до ×3', V(secScale, null, secScale), 'x']);
+      L.push(['Инженеров', 'У Штурвала разбор CVE и патчи делает вендор', V(secF, null, secF), 'fte']);
+      L.push(rateDiyRow);
+      L.push(['Сумма за год', '', V(secF * costDiy, null, secF * costDiy), 'sum']);
+    } else if (c === 'down') {
+      var hD = S.updates ? S.downDiyUpd : 0, hS = S.updates ? S.downShUpd : 0;
+      L.push(['Простои из-за обновлений, ч', S.updates ? '' : 'Обновлений нет', V(hD, hS, mix(hD, hS)), 'n']);
+      L.push(['Простои из-за инцидентов, ч', devShare > 0 && devShare < 1 ? 'Своя платформа: до запуска – как своя сборка, после – как Штурвал' : '', V(S.downDiyInc, S.downShInc, mix(S.downDiyInc, S.downShInc)), 'n']);
+      L.push(['Стоимость часа простоя', '', V(S.downCost, S.downCost, S.downCost), 'rub']);
+      L.push(['Сумма за год', 'Часы × стоимость часа', V((hD + S.downDiyInc) * S.downCost, (hS + S.downShInc) * S.downCost, mix(hD + S.downDiyInc, hS + S.downShInc) * S.downCost), 'sum']);
+    }
+    return L;
+  }
+  function n2(v) { return (+v).toLocaleString('ru-RU', { maximumFractionDigits: 2 }); }
+  function detCell(v, f) {
+    if (v === null || v === undefined || Math.abs(v) < 1e-9) return '–';
+    if (f === 'pd' || f === 'pdb') return (v < 0 ? '−' : '') + pdFmt(Math.abs(v)) + ' ч.д.';
+    if (f === 'fte') return fte(v) + ' FTE';
+    if (f === 'm' || f === 'sum') return fmtM(v);
+    if (f === 'rub') return rub(v);
+    if (f === 'mo') return n2(Math.round(v * 10) / 10) + ' мес.';
+    if (f === 'pct') return n2(v) + '%';
+    if (f === 'x') return '×' + n2(Math.round(v * 100) / 100);
+    return n2(Math.round(v * 10) / 10);
+  }
+  var detYear = {};
+  var drawerCat = null, drawerFrom = null;
+  function drawerHtml(c) {
+    var R = last, N = R.N;
+    var th = ORDER.map(function (k) { return '<th class="' + (k === 'sh' ? 'sh' : '') + '">' + R.sc[k].name + '</th>'; }).join('');
+    var td = function (k, h) { return '<td class="' + (k === 'sh' ? 'sh' : '') + '">' + h + '</td>'; };
+    var html = '<div class="d-tot">' + ORDER.map(function (k) {
+      return '<div class="' + k + '"><span>' + R.sc[k].name + '</span><b>' + (R.sc[k].tot[c] > 0 ? fmtM(R.sc[k].tot[c]) : '–') + '</b><small>за ' + N + ' ' + yearsWord(N) + '</small></div>'; }).join('') + '</div>';
+    html += '<h4 class="d-h">Что входит</h4><div class="d-how">' + ORDER.map(function (k) {
+      return '<div class="' + k + '"><span>' + R.sc[k].name + '</span><p>' + (R.sc[k].tot[c] > 0 ? howText(c, k) : 'В этом варианте статьи нет.') + '</p></div>'; }).join('') + '</div>';
+    var yAny = []; for (var yy = 1; yy <= N; yy++) if (ORDER.some(function (k) { return R.sc[k].ex[c].some(function (e) { return e.y === yy; }); })) yAny.push(yy);
+    var yd = yAny.indexOf(detYear[c]) >= 0 ? detYear[c] : yAny[0];
+    html += '<div class="d-steps-head"><h4 class="d-h">Расчёт по шагам</h4>' + (yAny.length > 1 ? '<span class="yr-tabs" role="group" aria-label="Год разбора">' + yAny.map(function (v) {
+      return '<button type="button" class="yr-btn" data-y="' + v + '" aria-pressed="' + (v === yd) + '">' + v + '-й год</button>'; }).join('') + '</span>' : '<span class="yr-one">' + yd + '-й год</span>') + '</div>';
+    html += '<div class="tbl-wrap"><table class="tbl det-tbl"><thead><tr><th>Шаг</th>' + th + '</tr></thead><tbody>' + detail(c, yd).map(function (d) {
+      return '<tr class="det-row' + (d[3] === 'sum' ? ' det-sum' : d[3] === 'pdb' ? ' det-sub' : '') + '"><td>' + d[0] + (d[1] ? '<small>' + d[1] + '</small>' : '') + '</td>' +
+        ORDER.map(function (k) { return td(k, detCell(d[2][k], d[3])); }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+    html += '<h4 class="d-h">По годам</h4><p class="d-note">Инженеры × стоимость инженера в этом году = сумма. Число кластеров и ставка меняются по годам.</p>';
+    var rows = '';
+    for (var y = 1; y <= N; y++) {
+      rows += '<tr><td>' + y + '-й год<small>кластеров: ' + R.clustersByYear[y - 1] + '</small></td>' + ORDER.map(function (k) {
+        var e = R.sc[k].ex[c].filter(function (x) { return x.y === y; })[0];
+        return td(k, e ? '<b>' + fmtM(e.v) + '</b>' + (e.t ? '<small>' + e.t + '</small>' : '') : '–'); }).join('') + '</tr>';
+    }
+    html += '<div class="tbl-wrap"><table class="tbl det-tbl d-years"><thead><tr><th>Год</th>' + th + '</tr></thead><tbody>' + rows + '</tbody><tfoot><tr><td>Итого</td>' +
+      ORDER.map(function (k) { return td(k, R.sc[k].tot[c] > 0 ? fmtM(R.sc[k].tot[c]) : '–'); }).join('') + '</tr></tfoot></table></div>';
+    return html;
+  }
+  function renderDrawer() {
+    if (!drawerCat) return;
+    var R = last, c = drawerCat;
+    $('drawer-title').textContent = CAT_NAMES[c][0];
+    $('drawer-sub').textContent = CAT_NAMES[c][1];
+    $('drawer-cats').innerHTML = Object.keys(CAT_NAMES).filter(function (k) { return ORDER.some(function (s) { return R.sc[s].tot[k] > 0; }); }).map(function (k) {
+      return '<button type="button" data-cat="' + k + '" aria-pressed="' + (k === c) + '">' + CAT_NAMES[k][0] + '</button>'; }).join('');
+    $('drawer-body').innerHTML = drawerHtml(c);
+    var nav = $('drawer-cats'), on = nav.querySelector('[aria-pressed="true"]');
+    if (on) { var a = on.getBoundingClientRect(), b = nav.getBoundingClientRect(); nav.scrollLeft += a.left - b.left - (b.width - a.width) / 2; }
+  }
+  function openDrawer(c, from) {
+    drawerCat = c; drawerFrom = from || null;
+    $('drawer').hidden = false;
+    renderDrawer();
+    document.documentElement.classList.add('drawer-open');
+    $('drawer-body').scrollTop = 0;
+    $('drawer').querySelector('.drawer-x').focus();
+  }
+  function closeDrawer() {
+    if (!drawerCat) return;
+    drawerCat = null;
+    $('drawer').hidden = true;
+    document.documentElement.classList.remove('drawer-open');
+    if (drawerFrom && document.contains(drawerFrom)) drawerFrom.focus();
+  }
+  function exList(list) {
+    if (!list || !list.length) return '–';
+    return list.map(function (e) { return '<span class="ex-line"><i>' + e.y + '-й год</i>' + (e.t ? e.t + ' = ' : '') + '<b>' + fmtM(e.v) + '</b></span>'; }).join('');
+  }
+  function cumOf(years) { var c = [0]; years.forEach(function (v, i) { c.push(c[i] + v); }); return c; }
+  function breakeven(cd, cs) {
+    var d = cd.map(function (v, i) { return cs[i] - v; });
+    if (d[1] < 0) return 0;
+    for (var i = 2; i < d.length; i++) if (d[i] < 0) return (i - 1) + d[i - 1] / (d[i - 1] - d[i]);
+    return null;
+  }
+  function clusterThreshold() {
+    var keep = S, out = null, grow = S.clustersEnd / S.clusters, perCl = S.nodes / S.clusters;
+    try {
+      for (var n = 1; n <= 200; n++) {
+        S = clone(keep); S.clusters = n; S.clustersEnd = Math.max(1, Math.round(n * grow)); S.nodes = Math.max(3, Math.round(perCl * n));
+        var r = compute();
+        if (r.sc.sh.total < r.sc.diy.total) { out = n; break; }
+      }
+    } finally { S = keep; }
+    return out;
+  }
+  function clWord(n) { var a = n % 10, b = n % 100; return a === 1 && b !== 11 ? 'кластера' : 'кластеров'; }
+  function monthsText(t) {
+    var m = Math.max(1, Math.ceil(t * 12 - 1e-9));
+    return m + '-м месяце' + (m >= 12 ? ' (' + (Math.floor((m - 1) / 12) + 1) + '-й год)' : '');
+  }
+  function renderTrust(R) {
+    var N = R.N, cd = cumOf(R.sc.diy.years), cs = cumOf(R.sc.sh.years), be = breakeven(cd, cs), th = clusterThreshold();
+    var beText = be === 0 ? 'с первого года' : be === null ? 'не наступает за ' + N + ' ' + yearsWord(N) : 'на ' + monthsText(be);
+    $('facts').innerHTML =
+      '<div class="fact"><span class="cap">Окупаемость перехода</span><b>Штурвал дешевле своей сборки ' + beText + '</b>' +
+        '<span>Накопленные затраты, лицензия не учтена</span></div>' +
+      '<div class="fact"><span class="cap">Порог выгоды</span><b>' + (th === 1 ? 'Штурвал выгоднее уже с одного кластера' : th ? 'Штурвал выгоднее от ' + th + ' ' + clWord(th) + ', при меньшем числе своя сборка дешевле' : 'До 200 кластеров своя сборка дешевле') + '</b>' +
+        '<span>Те же узлы на кластер, горизонт, зарплата и режим</span></div>';
+    $('cum-text').innerHTML = be === null
+      ? 'При этих параметрах за ' + N + ' ' + yearsWord(N) + ' Штурвал не становится дешевле своей сборки.'
+      : 'Накопленные затраты на Штурвале становятся меньше, чем на своей сборке, <b>' + beText + '</b>. Разница к концу периода – <b>' + fmtM(cd[N] - cs[N]) + '</b>.';
+    var svg = $('cum'), W = 720, H = 280, L = 56, Rm = 150, T = 34, B = 34, pw = W - L - Rm, ph = H - T - B;
+    var maxV = Math.max(cd[N], cs[N]) || 1;
+    var raw = maxV / 4, p = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10)), m = raw / p;
+    var step = (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p, top = Math.ceil(maxV / step) * step;
+    var x = function (i) { return L + pw * i / N; }, yv = function (v) { return T + ph * (1 - v / top); };
+    var h = '';
+    for (var v = 0; v <= top + 1; v += step) {
+      h += '<line class="' + (v === 0 ? 'ax' : 'gl') + '" x1="' + L + '" x2="' + (L + pw) + '" y1="' + yv(v).toFixed(1) + '" y2="' + yv(v).toFixed(1) + '"/>' +
+        '<text x="' + (L - 10) + '" y="' + (yv(v) + 4).toFixed(1) + '" text-anchor="end">' + (v === 0 ? '0' : mln(v)) + '</text>';
+    }
+    h += '<text x="' + (L - 10) + '" y="' + (T - 18) + '" text-anchor="end">млн ₽</text>';
+    for (var i = 0; i <= N; i++) h += '<text x="' + x(i).toFixed(1) + '" y="' + (H - 10) + '" text-anchor="middle">' + (i === 0 ? 'старт' : i + '-й год') + '</text>';
+    var pts = function (c) { return c.map(function (val, i) { return x(i).toFixed(1) + ',' + yv(val).toFixed(1); }).join(' '); };
+    h += '<polygon class="gap" points="' + pts(cd) + ' ' + cs.map(function (val, i) { return x(i).toFixed(1) + ',' + yv(val).toFixed(1); }).reverse().join(' ') + '"/>';
+    h += '<polyline class="l-diy" points="' + pts(cd) + '"/><polyline class="l-sh" points="' + pts(cs) + '"/>';
+    cd.forEach(function (val, i) { h += '<circle class="p-diy" r="3.5" cx="' + x(i).toFixed(1) + '" cy="' + yv(val).toFixed(1) + '"/>'; });
+    cs.forEach(function (val, i) { h += '<circle class="p-sh" r="4" cx="' + x(i).toFixed(1) + '" cy="' + yv(val).toFixed(1) + '"/>'; });
+    if (be) {
+      var bx = x(be).toFixed(1);
+      h += '<line class="be" x1="' + bx + '" x2="' + bx + '" y1="' + T + '" y2="' + (T + ph) + '"/>' +
+        '<text class="be-t" x="' + (+bx + 6) + '" y="' + (T - 18) + '">окупается</text>';
+    }
+    var yd = yv(cd[N]), ys = yv(cs[N]);
+    if (Math.abs(yd - ys) < 36) { var mid = (yd + ys) / 2, up = yd < ys; yd = mid + (up ? -18 : 18); ys = mid + (up ? 18 : -18); }
+    var ex = x(N) + 12;
+    h += '<text class="end" x="' + ex + '" y="' + (yd - 2).toFixed(1) + '">Своя сборка</text><text class="end-v" x="' + ex + '" y="' + (yd + 14).toFixed(1) + '">' + fmtM(cd[N]) + '</text>';
+    h += '<text class="end sh" x="' + ex + '" y="' + (ys - 2).toFixed(1) + '">Штурвал</text><text class="end-v" x="' + ex + '" y="' + (ys + 14).toFixed(1) + '">' + fmtM(cs[N]) + '</text>';
+    svg.innerHTML = h;
+    var e = R.emp, nf = function (v) { return v.toLocaleString('ru-RU', { maximumFractionDigits: 3 }); };
+    $('emp-formula').innerHTML =
+      'Оклад: ' + rub(S.salary) + ' × 12 = ' + rub(e.base) + '<br>' +
+      'С премиями: ' + rub(e.base) + ' × ' + nf(1 + S.bonus / 100) + ' = ' + rub(e.gross) + '<br>' +
+      'Взносы: 30% × ' + rub(Math.min(e.gross, INS_LIMIT)) + (e.gross > INS_LIMIT ? ' + 15,1% × ' + rub(e.gross - INS_LIMIT) : '') + ' = ' + rub(e.ins) + '<br>' +
+      'Накладные: ' + S.overhead + '% × ' + rub(e.base) + ' = ' + rub(e.over) + '<br>' +
+      'Итого в 1-й год: <b>' + rub(e.total) + '</b>' + (S.indexation ? ', дальше +' + S.indexation + '% в год' : '');
+    var d = new Date();
+    $('res-meta').innerHTML = 'Расчёт от ' + d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · методика 2026.10 · <a href="#sources">источники</a>';
+  }
+  function renderTable(R) {
+    var t = $('tbl'), N = R.N, html = '';
+    var head = '<thead><tr><th>' + (tab === 'year' ? 'Год' : tab === 'fte' ? 'Год' : 'Статья') + '</th>' +
+      ORDER.map(function (k) { return '<th class="' + (k === 'sh' ? 'sh' : '') + '">' + R.sc[k].name + '</th>'; }).join('') + '</tr></thead>';
+    var cell = function (k, v, f) { return '<td class="' + (k === 'sh' ? 'sh' : '') + (v === 0 ? ' zero' : '') + '">' + (v === 0 ? '–' : f(v)) + '</td>'; };
+    if (tab === 'cat') {
+      html = Object.keys(CAT_NAMES).map(function (c) {
+        var any = ORDER.some(function (k) { return R.sc[k].tot[c] > 0; });
+        var name = any ? '<button type="button" class="ex-btn" data-cat="' + c + '" aria-haspopup="dialog">' + CAT_NAMES[c][0] + '<span>Как посчитано</span></button>' : CAT_NAMES[c][0];
+        var row = '<tr class="cat-row"><td>' + name + '<small>' + CAT_NAMES[c][1] + '</small></td>' +
+          ORDER.map(function (k) { return cell(k, R.sc[k].tot[c], fmtM); }).join('') + '</tr>';
+        return row;
+      }).join('');
+      html += '</tbody><tfoot><tr><td>Итого за ' + N + ' ' + yearsWord(N) + '</td>' + ORDER.map(function (k) { return cell(k, R.sc[k].total, fmtM); }).join('') + '</tr></tfoot>';
+    } else if (tab === 'year') {
+      for (var y = 0; y < N; y++) {
+        html += '<tr><td>' + (y + 1) + '-й год<small>кластеров: ' + R.clustersByYear[y] + '</small></td>' +
+          ORDER.map(function (k) { return cell(k, R.sc[k].years[y], fmtM); }).join('') + '</tr>';
+      }
+      html += '</tbody><tfoot><tr><td>Итого</td>' + ORDER.map(function (k) { return cell(k, R.sc[k].total, fmtM); }).join('') + '</tr></tfoot>';
+    } else {
+      for (var y2 = 0; y2 < N; y2++) {
+        html += '<tr><td>' + (y2 + 1) + '-й год<small>кластеров: ' + R.clustersByYear[y2] + '</small></td>' +
+          ORDER.map(function (k) { return cell(k, R.sc[k].fte[y2], function (v) { return fte(v) + ' FTE'; }); }).join('') + '</tr>';
+      }
+      html += '</tbody>';
+    }
+    t.innerHTML = head + '<tbody>' + html;
+  }
+  var STACK = {
+    none: ['Делаем с нуля', 'Считаем создание сборки и её сопровождение после запуска'],
+    have: ['Уже есть', 'Создание сборки и текущих кластеров уже оплачено – считаем только дальнейшие расходы: сопровождение, ИБ, эксплуатацию и новые кластеры'],
+    rebuild: ['Переделываем', 'Считаем создание новой сборки, а старую сопровождаем, пока новая не готова']
+  };
+  function renderSummary(R) {
+    var lines = [
+      'Своя сборка: ' + STACK[S.stack][0].toLowerCase() + '; регулярные обновления k8s и узлов: ' + (S.updates ? 'да' : 'нет') + '; системное закрытие уязвимостей: ' + (S.vulns ? 'да' : 'нет'),
+      'Кластеров: ' + S.clusters + (S.clustersEnd !== S.clusters ? ' → ' + S.clustersEnd : '') + ', worker-узлов: ' + S.nodes,
+      'Горизонт: ' + R.N + ' ' + yearsWord(R.N) + ', режим ' + (S.mode === '24x7' ? '24×7' : '8×5') + ', зарплата инженера ' + rub(S.salary) + '/мес',
+      'Своя сборка K8s: ' + fmtM(R.sc.diy.total) + '; свой «Штурвал»: ' + fmtM(R.sc.own.total) + '; Штурвал без лицензии: ' + fmtM(R.sc.sh.total),
+      'Высвобождаемый бюджет: ' + (R.sc.diy.total - R.sc.sh.total < 0 ? '−' : '') + fmtM(Math.abs(R.sc.diy.total - R.sc.sh.total))
+    ];
+    var MAIN = ['stack', 'updates', 'vulns', 'clusters', 'clustersEnd', 'nodes', 'years', 'mode', 'salary'];
+    var d = currentDiff();
+    MAIN.forEach(function (k) { delete d.params[k]; });
+    var changed = typeof GROUP_NAMES === 'undefined' ? [] : diffLines(d);
+    if (changed.length) {
+      lines.push('', 'Изменённые допущения:');
+      changed.forEach(function (l) { lines.push('– ' + l[0] + ': ' + l[1]); });
+    }
+    $('f-calc').value = lines.join('\n');
+  }
+  function renderCoef() {
+    var dis = '';
+    var inp = function (grp, i, key, v) {
+      return '<input type="number" step="any" min="0" data-g="' + grp + '" data-i="' + i + '" data-k="' + key + '" value="' + v + '"' + dis + ' aria-label="Значение">';
+    };
+    var isChanged = function (grp, i) { return JSON.stringify(C[grp][i]) !== JSON.stringify(COEF_DEFAULT[grp][i]); };
+    var row = function (grp, i, r, extra) {
+      return '<tr' + (isChanged(grp, i) ? ' class="changed"' : '') + '><td>' + r.name + (extra || '') + '</td>' +
+        '<td>' + inp(grp, i, 'diy', r.diy) + '</td><td class="sh">' + inp(grp, i, 'sh', r.sh) + '</td></tr>';
+    };
+    var fname = function (id) { for (var i = 0; i < C.freq.length; i++) if (C.freq[i].id === id) return C.freq[i].name.toLowerCase(); };
+    var h = '<thead><tr><th>Операция</th><th>Своя сборка</th><th class="sh">Штурвал</th></tr></thead><tbody>';
+    h += '<tr class="grp"><td colspan="3">Разово при запуске платформы, человеко-дни</td></tr>';
+    C.once.forEach(function (r, i) { h += row('once', i, r); });
+    h += '<tr class="grp"><td colspan="3">Создание одного кластера, человеко-дни на кластер</td></tr>';
+    C.create.forEach(function (r, i) { h += row('create', i, r); });
+    h += '<tr><td><b>Итого на кластер</b></td><td><b>' + pdFmt(createPd('diy')) + '</b></td><td class="sh"><b>' + pdFmt(createPd('sh')) + '</b></td></tr>';
+    h += '<tr class="grp"><td colspan="3">Эксплуатация одного кластера, человеко-дни за одну операцию</td></tr>';
+    C.ops.forEach(function (r, i) {
+      var extra = '<small>' + (r.f ? fname(r.f) + ': ' + String(freq(r.f)).replace('.', ',') : 'в год') + (r.perNode ? ' · своя сборка: + ' + r.perNode + ' ч.д. на каждый узел' : '') +
+        (r.perWorker ? ' · умножается на число worker-узлов в кластере: сейчас ' + fte(last.npc - MASTERS) : '') + (r.note ? ' · ' + r.note : '') + '</small>';
+      h += row('ops', i, r, extra);
+    });
+    h += '<tr><td><b>Итого на кластер в год</b><small>при ' + fte(last.npc) + ' узлах в кластере, включая master; для своей сборки – до учёта автоматизации</small></td><td><b>' + pdFmt(perClusterOpsPd('diy', last.npc)) + '</b></td><td class="sh"><b>' + pdFmt(perClusterOpsPd('sh', last.npc)) + '</b></td></tr>';
+    h += '<tr class="grp"><td colspan="3">Неплановая работа, человеко-дни в год на кластер</td></tr>';
+    C.unpl.forEach(function (r, i) { h += row('unpl', i, r, r.perWorker ? '<small>умножается на число worker-узлов в кластере: сейчас ' + fte(last.npc - MASTERS) + '</small>' : ''); });
+    h += '<tr class="grp"><td colspan="3">Платформа целиком, человеко-дни за одну операцию</td></tr>';
+    C.plat.forEach(function (r, i) { h += row('plat', i, r, '<small>' + fname(r.f) + ': ' + freq(r.f) + '</small>'); });
+    h += '<tr class="grp"><td colspan="3">Частота операций, раз в год</td></tr>';
+    C.freq.forEach(function (r, i) {
+      h += '<tr' + (isChanged('freq', i) ? ' class="changed"' : '') + '><td>' + r.name + '</td><td colspan="2" class="sh" style="text-align:center">' +
+        '<input type="number" step="any" min="0" data-g="freq" data-i="' + i + '" data-k="v" value="' + r.v + '"' + dis + ' aria-label="Частота"></td></tr>';
+    });
+    h += '</tbody>';
+    $('coef').innerHTML = h;
+  }
+  var NUM_IDS = ['clusters', 'nodes', 'salary', 'clustersEnd', 'bonus', 'overhead', 'indexation', 'diyPremium',
+                 'buildTeam', 'buildMonths', 'maintFte', 'automation', 'ownTeam', 'ownMonths', 'secFte', 'downCost', 'downDiyUpd', 'downDiyInc', 'downShUpd', 'downShInc', 'minTeam', 'rota', 'allowance', 'migPd', 'migParSh', 'migParOther', 'mgmtVms', 'vmCost', 'trainCost'];
+  var endTouched = false;
+  function syncRange(id) {
+    var r = document.querySelector('input[type="range"][data-for="' + id + '"]');
+    if (!r) return;
+    r.value = Math.min(+r.max, Math.max(+r.min, S[id]));
+    r.style.setProperty('--p', ((r.value - r.min) / (r.max - r.min) * 100) + '%');
+  }
+  function syncAll() {
+    NUM_IDS.forEach(function (id) { $(id).value = S[id]; syncRange(id); });
+    document.querySelectorAll('.seg').forEach(function (g) {
+      var key = g.dataset.seg;
+      g.querySelectorAll('button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.v === String(S[key]))); });
+    });
+    $('updates').checked = S.updates; $('vulns').checked = S.vulns;
+  }
+  ['updates', 'vulns'].forEach(function (id) {
+    $(id).addEventListener('change', function () { S[id] = $(id).checked; render(); renderCoef(); });
+  });
+  var doubtFrom = null;
+  function doubtHtml() {
+    var R = last, N = R.N, yrs = N + ' ' + yearsWord(N);
+    var freed = R.sc.diy.total - R.sc.sh.total;
+    var u = S.updates, v = S.vulns;
+    S.updates = false; S.vulns = false; var off = compute(); S.updates = u; S.vulns = v;
+    var offFreed = off.sc.diy.total - off.sc.sh.total;
+    var both = u && v;
+    var pay = S.salary * 12, ratio = R.emp.total / pay;
+    var x = function (n) { return n.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 }); };
+    return '<p class="d-lead">Обычно мы слышим два возражения: <b>«Мы столько не тратим!»</b> и <b>«Не может исправление уязвимостей столько стоить!»</b> Вот что на них отвечаем.</p>' +
+      '<ol class="doubt-list">' +
+      '<li><h4>Да, обычно компании столько не тратят</h4>' +
+        '<p>Потому что у них нет выделенной команды по исправлению всех уязвимостей, а все компоненты обновляют редко, теряя функциональность и защищённость.</p>' +
+        (both ? '<p>Уберите галочки «Kubernetes и узлы будут регулярно обновляться» и «Уязвимости будут системно закрываться» – картина станет совсем другой: своя сборка за ' + yrs + ' – <b>' + fmtM(off.sc.diy.total) + '</b> вместо ' + fmtM(R.sc.diy.total) + ', разница со Штурвалом – <b>'
+              : '<p>' + (!u && !v ? 'Сейчас обе галочки сняты' : 'Сейчас одна из галочек снята') + ' – и картина совсем другая: без обновлений и закрытия уязвимостей своя сборка за ' + yrs + ' – <b>' + fmtM(off.sc.diy.total) + '</b>, разница со Штурвалом – <b>') +
+          (offFreed < 0 ? '−' : '') + fmtM(Math.abs(offFreed)) + '</b>' + (offFreed < 0 ? ' в пользу своей сборки' : '') + '.</p>' +
+        '<button class="btn btn-sm doubt-act" type="button" data-act="flags">' + (both ? 'Убрать обе галочки' : 'Вернуть обе галочки') + '</button></li>' +
+      '<li><h4>Сотрудник стоит дороже своей зарплаты</h4>' +
+        '<p>Мы часто забываем, что затраты на сотрудника – это не его зарплата за год. Работодатель платит премии, страховые взносы, оплачивает рабочее место, технику, обучение, найм и ДМС. Поэтому сотрудник обходится компании заметно дороже своей зарплаты – в полтора-два раза, а то и больше.</p>' +
+        '<p>В расчёте сейчас: зарплата ' + fmtM(pay) + ' в год, а стоимость инженера для компании – <b>' + fmtM(R.emp.total) + '</b>, это ×' + x(ratio) + '. Мы считаем осторожно: премии ' + S.bonus + '%, накладные ' + S.overhead + '%. Если у вас иначе, поставьте свои значения в расширенных параметрах.</p></li>' +
+      '<li><h4>Уязвимости – это действительно очень дорого</h4>' +
+        '<p>Да, Штурвал сильно больше среднестатистической своей сборки. Но вдумайтесь: только за время разработки версии 2.15 – это 4 месяца – было обнаружено <b>больше 5 000 уязвимостей уровня medium и выше</b>. Каждую нужно разобрать, описать, исправить, пересобрать и протестировать.</p>' +
+        '<p>Делаете ли вы это сейчас?</p></li>' +
+      '<li><h4>Возможно, мы ошиблись в коэффициентах</h4>' +
+        '<p>Поправьте их руками в таблице «Трудоёмкость операций» – калькулятор пересчитает всё ровно под вашу действительность.</p>' +
+        '<button class="btn btn-sm doubt-act" type="button" data-act="fine">Открыть таблицу трудоёмкости</button></li>' +
+      '</ol>' +
+      '<p class="d-note">Сейчас ' + (freed >= 0 ? 'высвобождается ' + fmtM(freed) : 'своя сборка дешевле на ' + fmtM(-freed)) + ' за ' + yrs + '.</p>';
+  }
+  function openDoubt() {
+    doubtFrom = $('doubt-open');
+    $('doubt-body').innerHTML = doubtHtml();
+    $('doubt').hidden = false;
+    document.documentElement.classList.add('drawer-open');
+    $('doubt-body').scrollTop = 0;
+    $('doubt').querySelector('.drawer-x').focus();
+  }
+  function closeDoubt(noFocus) {
+    if ($('doubt').hidden) return;
+    $('doubt').hidden = true;
+    document.documentElement.classList.remove('drawer-open');
+    if (!noFocus && doubtFrom && document.contains(doubtFrom)) doubtFrom.focus();
+  }
+  $('doubt-open').addEventListener('click', openDoubt);
+  $('doubt').addEventListener('click', function (e) {
+    if (e.target.closest('[data-close]')) { closeDoubt(); return; }
+    var a = e.target.closest('.doubt-act'); if (!a) return;
+    if (a.dataset.act === 'flags') {
+      var on = !(S.updates && S.vulns);
+      S.updates = on; S.vulns = on;
+      syncAll(); render(); renderCoef();
+      $('doubt-body').innerHTML = doubtHtml();
+      var nb = $('doubt-body').querySelector('[data-act="flags"]'); if (nb) nb.focus();
+    } else if (a.dataset.act === 'fine') {
+      closeDoubt(true);
+      $('fine').scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
+      var first = $('coef').querySelector('input'); if (first) first.focus({ preventScroll: true });
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if ($('doubt').hidden) return;
+    if (e.key === 'Escape') { closeDoubt(); return; }
+    if (e.key === 'Tab') {
+      var f = $('doubt').querySelectorAll('button, a[href]'), first = f[0], lastEl = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); lastEl.focus(); }
+      else if (!e.shiftKey && document.activeElement === lastEl) { e.preventDefault(); first.focus(); }
+    }
+  });
+  var backBtn = $('back-btn'), backY = null, backArmed = false;
+  function backDir() { backBtn.classList.toggle('down', backY > window.scrollY); }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('a[href^="#"]');
+    if (!a || a.getAttribute('href') === '#' || a.classList.contains('m-link')) return;
+    if (!document.getElementById(a.getAttribute('href').slice(1))) return;
+    backY = window.scrollY; backArmed = false;
+    backBtn.hidden = false;
+    setTimeout(backDir, 50);
+  }, true);
+  backBtn.addEventListener('click', function () {
+    var y = backY; backY = null; backBtn.hidden = true;
+    var from = window.scrollY, smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: y, behavior: smooth ? 'smooth' : 'instant' });
+    if (smooth) setTimeout(function () { if (window.scrollY === from && Math.abs(from - y) > 1) window.scrollTo({ top: y, behavior: 'instant' }); }, 150);
+  });
+  window.addEventListener('scroll', function () {
+    if (backY === null) return;
+    var d = Math.abs(window.scrollY - backY);
+    if (d > 200) backArmed = true;
+    else if (backArmed && d < 80) { backY = null; backBtn.hidden = true; return; }
+    backDir();
+  }, { passive: true });
+  function coefRow(list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return {}; }
+  function pdx(v) { return v.toLocaleString('ru-RU', { maximumFractionDigits: 3 }); }
+  function timesWord(n) { var a = n % 10, b = n % 100; return a >= 2 && a <= 4 && (b < 12 || b > 14) ? 'раза' : 'раз'; }
+  function flagEffect(key) {
+    var was = S[key];
+    S[key] = true; var on = compute();
+    S[key] = false; var off = compute();
+    S[key] = was;
+    var d = {};
+    ORDER.forEach(function (k) { d[k] = on.sc[k].total - off.sc[k].total; });
+    return d;
+  }
+  function popHtml(key) {
+    var R = last, c0 = R.clustersByYear[0], workers1 = Math.max(0, S.nodes);
+    var rate = function (x) { return (x / 1e6).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' млн ₽'; };
+    var row = function (name, note, diy, sh) { return '<tr><td>' + name + (note ? '<small>' + note + '</small>' : '') + '</td><td data-l="Своя сборка">' + diy + '</td><td data-l="Штурвал">' + sh + '</td></tr>'; };
+    var h, rows, formula;
+    if (key === 'updates') {
+      var fK = freq('fK8s'), fO = freq('fOs'), fP = freq('fPlat');
+      var o1 = coefRow(C.ops, 'o1'), o2 = coefRow(C.ops, 'o2'), o3 = coefRow(C.ops, 'o3'), o7 = coefRow(C.ops, 'o7'), p1 = coefRow(C.plat, 'p1');
+      var maintNow = S.maintFte * maintScale(c0);
+      h = '<h5>Как считаем обновления</h5><p>С галочкой в расчёт входят работы ниже. Без неё они обнуляются: кластеры живут на тех версиях, что есть.</p>';
+      rows = row('Обновление Kubernetes', fK + ' ' + timesWord(fK) + ' в год: тестирование на кластере и само обновление',
+                   pdx(o1.diy + o2.diy) + ' ч.д. на кластер + ' + pdx(o2.perNode) + ' ч.д. на каждый узел', pdx(o1.sh + o2.sh) + ' ч.д. на кластер') +
+             row('Обновление ОС на узлах', fO + ' ' + timesWord(fO) + ' в год',
+                   pdx(o3.diy) + ' ч.д. на кластер + ' + pdx(o7.diy) + ' ч.д. на worker-узел', pdx(o3.sh) + ' ч.д. на кластер + ' + pdx(o7.sh) + ' ч.д. на worker-узел') +
+             row('Обновление самой платформы', fP + ' ' + timesWord(fP) + ' в год, control plane Штурвала', '–', pdx(p1.sh) + ' ч.д.') +
+             row('Сопровождение сборки', 'Проверка совместимости компонентов в каждой новой версии сборки',
+                   x2f(S.maintFte) + ' FTE на 10 кластеров, сейчас ' + x2f(maintNow) + ' FTE', 'делает вендор, входит в продукт') +
+             row('Простои из-за обновлений', 'Часы в год × стоимость часа простоя, ' + fmtM(S.downCost),
+                   S.downDiyUpd + ' ч в год', S.downShUpd + ' ч в год');
+      formula = 'Человеко-дни за год ÷ ' + DAYS + ' рабочих дней = FTE. FTE × стоимость инженера: ' + rate(R.emp.total) + ' в год, для сопровождения сборки с надбавкой ' + S.diyPremium + '% – ' + rate(R.empDiy.total) + '. Плановую работу снижает автоматизация при росте числа кластеров и узлов, зарплаты индексируются на ' + S.indexation + '% в год.';
+    } else {
+      var fA = freq('fAudit'), o4 = coefRow(C.ops, 'o4'), o5 = coefRow(C.ops, 'o5');
+      var secNow = S.secFte * Math.min(3, Math.max(0.25, Math.sqrt(Math.max(c0 / REF_CLUSTERS, workers1 / 200))));
+      h = '<h5>Как считаем закрытие уязвимостей</h5><p>С галочкой в расчёт входят аудиты и команда ИБ. Без неё они обнуляются: известные уязвимости остаются открытыми.</p>';
+      rows = row('Аудит конфигурации безопасности', fA + ' ' + timesWord(fA) + ' в год. В Штурвале аудит делает платформа: CIS Benchmark и политики Kyverno',
+                   pdx(o4.diy) + ' ч.д. на кластер', o4.sh ? pdx(o4.sh) + ' ч.д. на кластер' : '0 – встроено') +
+             row('Настройка по результатам аудита', fA + ' ' + timesWord(fA) + ' в год', pdx(o5.diy) + ' ч.д. на кластер', pdx(o5.sh) + ' ч.д. на кластер') +
+             row('Команда ИБ: разбор CVE, оценка рисков, патчи', 'Растёт по корню от большего из масштабов: кластеры / 10 или worker-узлы / 200, от ×0,25 до ×3',
+                   x2f(S.secFte) + ' FTE на 10 кластеров, сейчас ' + x2f(secNow) + ' FTE', 'делает вендор: ежедневный разбор уязвимостей и security-патчи в релизах');
+      formula = 'Аудиты: человеко-дни ÷ ' + DAYS + ' рабочих дней = FTE × ' + rate(R.emp.total) + ' в год. Команда ИБ – по ставке платформенного инженера с надбавкой ' + S.diyPremium + '%: ' + rate(R.empDiy.total) + ' в год. Своя платформа тоже держит свою команду ИБ.';
+    }
+    var d = flagEffect(key), on = S[key];
+    var eff = ORDER.map(function (k) {
+      var v = d[k], s = (v >= 0 ? '+' : '−') + fmtM(Math.abs(v));
+      return '<div class="' + k + '"><span>' + R.sc[k].name + '</span><b>' + s + '</b></div>';
+    }).join('');
+    return '<button class="x" type="button" aria-label="Закрыть">×</button>' + h +
+      '<table><thead><tr><th>Работа</th><th>Своя сборка</th><th>Штурвал</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<p class="formula">' + formula + '</p>' +
+      '<p class="eff-cap">' + (on ? 'Галочка добавляет за ' : 'Если включить, добавится за ') + R.N + ' ' + yearsWord(R.N) + ' при ваших параметрах</p>' +
+      '<div class="eff">' + eff + '</div>' +
+      '<p class="foot">Разница итогов с галочкой и без неё. Она бывает меньше суммы строк: часть работы берёт на себя минимальная команда, которая есть в любом случае. Коэффициенты – в разделе <a href="#method">«Как мы считаем»</a>.</p>';
+  }
+  function x2f(v) { return v.toLocaleString('ru-RU', { maximumFractionDigits: 2 }); }
+  var openPop = null;
+  function setPop(key) {
+    document.querySelectorAll('.info-hex').forEach(function (b) {
+      var k = b.dataset.pop, pop = $('pop-' + k), open = k === key;
+      b.setAttribute('aria-expanded', String(open));
+      if (open) pop.innerHTML = popHtml(k);
+      pop.hidden = !open;
+      if (open) pop.focus();
+    });
+    openPop = key;
+  }
+  function renderPops() { if (openPop) $('pop-' + openPop).innerHTML = popHtml(openPop); }
+  document.querySelectorAll('.info-hex').forEach(function (b) {
+    b.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      setPop(openPop === b.dataset.pop ? null : b.dataset.pop);
+    });
+  });
+  document.querySelectorAll('.m-pop').forEach(function (pop) {
+    pop.addEventListener('click', function (e) {
+      if (e.target.closest('.x')) { var k = openPop; setPop(null); document.querySelector('.info-hex[data-pop="' + k + '"]').focus(); }
+      else if (e.target.closest('a')) setPop(null);
+      e.stopPropagation();
+    });
+  });
+  document.addEventListener('click', function (e) {
+    if (!openPop) return;
+    var wrap = e.target.closest('.check-wrap');
+    if (!wrap || !wrap.contains($('pop-' + openPop))) setPop(null);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && openPop) { var k = openPop; setPop(null); document.querySelector('.info-hex[data-pop="' + k + '"]').focus(); }
+  });
+  function setNum(id, v) {
+    var el = $(id), min = +el.min, max = +el.max;
+    v = +v; if (!isFinite(v)) return;
+    v = Math.min(max, Math.max(min, v));
+    S[id] = v;
+    if (id === 'clusters' && !endTouched) { S.clustersEnd = v; $('clustersEnd').value = v; }
+    if (id === 'clustersEnd') endTouched = true;
+    syncRange(id);
+    render(); renderCoef();
+  }
+  NUM_IDS.forEach(function (id) {
+    var el = $(id);
+    el.addEventListener('input', function () { if (el.value !== '') setNum(id, el.value); });
+    el.addEventListener('change', function () { if (el.value === '') el.value = S[id]; else { setNum(id, el.value); el.value = S[id]; } });
+  });
+  document.querySelectorAll('input[type="range"]').forEach(function (r) {
+    r.addEventListener('input', function () { $(r.dataset.for).value = r.value; setNum(r.dataset.for, r.value); });
+  });
+  document.querySelectorAll('.seg').forEach(function (g) {
+    g.addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      var key = g.dataset.seg;
+      S[key] = key === 'years' ? +b.dataset.v : b.dataset.v;
+      syncAll(); render(); renderCoef();
+    });
+  });
+  $('reset').addEventListener('click', function () { S = clone(DEFAULTS); endTouched = false; syncAll(); render(); renderCoef(); });
+  $('tbl').addEventListener('click', function (e) {
+    var b = e.target.closest('.ex-btn'); if (!b) return;
+    openDrawer(b.dataset.cat, b);
+  });
+  $('drawer').addEventListener('click', function (e) {
+    if (e.target.closest('[data-close]')) { closeDrawer(); return; }
+    var yb = e.target.closest('.yr-btn');
+    if (yb) { detYear[drawerCat] = +yb.dataset.y; renderDrawer(); var n = $('drawer-body').querySelector('.yr-btn[data-y="' + yb.dataset.y + '"]'); if (n) n.focus(); return; }
+    var cb = e.target.closest('#drawer-cats button');
+    if (cb) { drawerCat = cb.dataset.cat; renderDrawer(); $('drawer-body').scrollTop = 0; var nc = $('drawer-cats').querySelector('[data-cat="' + cb.dataset.cat + '"]'); if (nc) nc.focus(); }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (!drawerCat) return;
+    if (e.key === 'Escape') { closeDrawer(); return; }
+    if (e.key === 'Tab') {
+      var f = $('drawer').querySelectorAll('button, a[href]'), first = f[0], lastEl = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); lastEl.focus(); }
+      else if (!e.shiftKey && document.activeElement === lastEl) { e.preventDefault(); first.focus(); }
+    }
+  });
+  $('reset-coef').addEventListener('click', function () { C = clone(COEF_DEFAULT); render(); renderCoef(); });
+  $('coef').addEventListener('input', function (e) {
+    var el = e.target; if (!el.dataset.g || el.value === '') return;
+    var v = Math.max(0, +el.value); if (!isFinite(v)) return;
+    C[el.dataset.g][+el.dataset.i][el.dataset.k] = v;
+    render();
+    var tr = el.closest('tr');
+    tr.classList.toggle('changed', JSON.stringify(C[el.dataset.g][+el.dataset.i]) !== JSON.stringify(COEF_DEFAULT[el.dataset.g][+el.dataset.i]));
+  });
+  $('coef').addEventListener('change', function () { renderCoef(); });
+  document.querySelectorAll('.tabs button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      tab = b.dataset.tab;
+      document.querySelectorAll('.tabs button').forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); });
+      renderTable(last);
+    });
+  });
+  var tip = $('tip');
+  function showTip(row, x, y) {
+    var s = last.sc[row.dataset.k];
+    var h = '<h5>' + s.name + ' · ' + fmtM(s.total) + '</h5>';
+    Object.keys(CAT_NAMES).forEach(function (c) { if (s.tot[c] > 0) h += '<div>' + CAT_NAMES[c][0] + '<b>' + fmtM(s.tot[c]) + '</b></div>'; });
+    tip.innerHTML = h; tip.hidden = false;
+    var w = tip.offsetWidth, hh = tip.offsetHeight;
+    tip.style.left = Math.max(12, Math.min(window.innerWidth - w - 12, x + 14)) + 'px';
+    tip.style.top = Math.max(12, y - hh - 12) + 'px';
+  }
+  $('bars').addEventListener('mousemove', function (e) { var r = e.target.closest('.bar-row'); if (r) showTip(r, e.clientX, e.clientY); else tip.hidden = true; });
+  $('bars').addEventListener('mouseleave', function () { tip.hidden = true; });
+  $('bars').addEventListener('focusin', function (e) { var r = e.target.closest('.bar-row'); if (r) { var b = r.getBoundingClientRect(); showTip(r, b.left, b.top); } });
+  $('bars').addEventListener('focusout', function () { tip.hidden = true; });
+  var LEAD_EMAIL = 'shturval@chislitellab.ru';
+  $('lead-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var f = e.target, ok = f.name.value.trim() && f.company.value.trim() && /.+@.+\..+/.test(f.email.value);
+    var price = e.submitter && e.submitter.dataset.intent === 'price';
+    if (!ok) { $('form-msg').textContent = 'Заполните имя, компанию и рабочую почту.'; return; }
+    var subject = (price ? 'Расчёт стоимости Штурвала' : 'Подробное ТЭО') + ' – ' + f.company.value.trim();
+    var text = ['Имя: ' + f.name.value.trim(), 'Компания: ' + f.company.value.trim(), 'Почта: ' + f.email.value.trim(),
+      'Телефон: ' + (f.phone.value.trim() || '–'), '', 'Комментарий: ' + (f.comment.value.trim() || '–'), '', 'Расчёт:', f.calc.value].join('\n');
+    window.location.href = 'mailto:' + LEAD_EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(text);
+    $('form-msg').textContent = 'Открываем письмо в вашей почтовой программе. Если оно не открылось, напишите нам на ' + LEAD_EMAIL + '.';
+  });
+  var PARAM_LABELS = { stack: 'Своя сборка Kubernetes', updates: 'Регулярные обновления k8s и узлов', vulns: 'Системное закрытие уязвимостей',
+    years: 'Горизонт расчёта, лет', mode: 'Режим эксплуатации' };
+  var GROUP_NAMES = { once: 'Разово при запуске', create: 'Создание кластера', ops: 'Эксплуатация кластера', plat: 'Платформа целиком',
+    unpl: 'Неплановая работа', freq: 'Частота' };
+  var FIELD_NAMES = { diy: 'своя сборка', sh: 'Штурвал', v: '' };
+  function paramLabel(k) {
+    if (PARAM_LABELS[k]) return PARAM_LABELS[k];
+    var l = document.querySelector('label[for="' + k + '"]');
+    return l ? l.textContent.trim() : k;
+  }
+  function fmtVal(k, v) {
+    if (k === 'stack') return STACK[v] ? STACK[v][0] : String(v);
+    if (k === 'mode') return v === '24x7' ? '24×7' : '8×5';
+    if (typeof v === 'boolean') return v ? 'да' : 'нет';
+    return String(v).replace('.', ',');
+  }
+  function currentDiff() {
+    var params = {}, coef = [];
+    Object.keys(DEFAULTS).forEach(function (k) { if (S[k] !== DEFAULTS[k]) params[k] = { from: DEFAULTS[k], to: S[k] }; });
+    Object.keys(COEF_DEFAULT).forEach(function (g) {
+      COEF_DEFAULT[g].forEach(function (r, i) {
+        ['diy', 'sh', 'v'].forEach(function (f) {
+          if (f in r && C[g][i][f] !== r[f]) coef.push({ g: g, id: r.id, name: r.name, f: f, from: r[f], to: C[g][i][f] });
+        });
+      });
+    });
+    return { params: params, coef: coef };
+  }
+  function diffLines(d) {
+    var out = [];
+    Object.keys(d.params || {}).forEach(function (k) {
+      var x = d.params[k]; out.push([paramLabel(k), fmtVal(k, x.from) + ' → ' + fmtVal(k, x.to)]);
+    });
+    (d.coef || []).forEach(function (x) {
+      var who = FIELD_NAMES[x.f] ? ', ' + FIELD_NAMES[x.f] : '';
+      out.push([(GROUP_NAMES[x.g] || x.g) + ': ' + x.name + who, fmtVal('', x.from) + ' → ' + fmtVal('', x.to)]);
+    });
+    return out;
+  }
+  (function () {
+    var svg = $('hv'); if (!svg) return;
+    var NS = 'http://www.w3.org/2000/svg';
+    var mk = function (tag, attrs, parent, text) { var e = document.createElementNS(NS, tag); for (var a in attrs) e.setAttribute(a, attrs[a]); if (text !== undefined) e.textContent = text; if (parent) parent.appendChild(e); return e; };
+    var ease = function (t) { return 1 - Math.pow(1 - t, 3); };
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var LOGO = 'M62.00 2.63L57.81 12.99C56.25 16.87 57.15 21.30 60.11 24.26L68.40 32.54C68.87 33.01 69.13 33.64 69.13 34.31L69.13 52.21C69.13 52.88 68.86 53.51 68.40 53.98L57.64 64.73C56.80 65.56 55.37 64.97 55.37 63.79L55.37 32.54C55.37 31.10 54.20 29.94 52.76 29.94L37.22 29.94C35.78 29.94 34.62 31.10 34.62 32.54L34.62 63.79C34.62 64.96 33.19 65.56 32.35 64.73L21.59 53.98C21.12 53.51 20.86 52.88 20.86 52.21L20.86 34.31C20.86 33.64 21.12 33.01 21.59 32.54L30.04 24.10C33.02 21.12 33.92 16.65 32.31 12.75L28.08 2.51C27.26 0.52 24.67 0.00 23.15 1.52L2.96 21.69C1.07 23.58 0.00 26.15 0.00 28.83L0.00 57.70C0.00 60.38 1.07 62.94 2.96 64.84L23.40 85.25C25.30 87.14 27.87 88.21 30.55 88.21L59.46 88.21C62.14 88.21 64.71 87.14 66.61 85.25L87.04 64.84C88.94 62.94 90.00 60.38 90.00 57.70L90.00 28.83C90.00 26.15 88.94 23.58 87.04 21.69L66.94 1.63C65.41 0.10 62.81 0.62 62.00 2.63Z';
+    var raf = null, timers = [], visible = false, loopTimer = null;
+    function run() {
+      cancelAnimationFrame(raf); timers.forEach(clearTimeout); timers = [];
+      svg.textContent = '';
+      var defs = mk('defs', {}, svg), f = mk('filter', { id: 'hvGlow', x: '-50%', y: '-50%', width: '200%', height: '200%' }, defs);
+      mk('feGaussianBlur', { stdDeviation: 5, result: 'b' }, f);
+      var m = mk('feMerge', {}, f); mk('feMergeNode', { in: 'b' }, m); mk('feMergeNode', { in: 'SourceGraphic' }, m);
+      var halo = mk('radialGradient', { id: 'hvHalo' }, defs);
+      mk('stop', { offset: '0', 'stop-color': '#1cf2de', 'stop-opacity': '.3' }, halo);
+      mk('stop', { offset: '1', 'stop-color': '#1cf2de', 'stop-opacity': '0' }, halo);
+      var glow = mk('circle', { cx: 288, cy: 190, r: 220, fill: 'url(#hvHalo)', opacity: 0, style: 'transition: opacity .8s' }, svg);
+      var rubG = mk('g', { filter: 'url(#hvGlow)', transform: 'translate(300 190) scale(.86) translate(-303 -145)' }, svg);
+      var RUB_ATTR = { fill: 'none', stroke: '#1cf2de', 'stroke-width': 14, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' };
+      var r1 = mk('path', Object.assign({ d: 'M 270 245 L 270 45 L 320 45 A 52 52 0 0 1 320 149 L 238 149' }, RUB_ATTR), rubG);
+      var r2 = mk('path', Object.assign({ d: 'M 238 197 L 318 197' }, RUB_ATTR), rubG);
+      var LX = 288;
+      var lg = mk('g', { transform: 'translate(' + LX + ' 190) scale(2.4) translate(-45 -44.1)', filter: 'url(#hvGlow)' }, svg);
+      var LW = 14 * 0.86 / 2.4;
+      var outline = mk('path', { d: LOGO, fill: 'none', stroke: '#1cf2de', 'stroke-width': LW, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, lg);
+      var fill = mk('path', { d: LOGO, fill: '#1cf2de', opacity: 0, style: 'transition: opacity .7s' }, lg);
+      var l1 = r1.getTotalLength(), l2 = r2.getTotalLength(), rl = l1 + l2, ol = outline.getTotalLength();
+      [[r1, l1], [r2, l2]].forEach(function (x) { x[0].style.strokeDasharray = x[1] + ' ' + x[1]; x[0].style.strokeDashoffset = x[1]; x[0].style.visibility = 'hidden'; });
+      function drawRub(d) {
+        var a = Math.min(d, l1), b = Math.max(0, Math.min(d - l1, l2));
+        r1.style.visibility = a > 0.5 ? 'visible' : 'hidden'; r1.style.strokeDashoffset = (l1 - a).toFixed(1);
+        r2.style.visibility = b > 0.5 ? 'visible' : 'hidden'; r2.style.strokeDashoffset = (l2 - b).toFixed(1);
+      }
+      var e = r2.getPointAtLength(l2), EX = (300 - LX + 0.86 * (e.x - 303)) / 2.4 + 45, EY = 0.86 * (e.y - 145) / 2.4 + 44.1;
+      var S = 0, near = Infinity;
+      for (var q = 0; q < ol; q += 0.25) { var pt = outline.getPointAtLength(q), dd = Math.hypot(pt.x - EX, pt.y - EY); if (dd < near) { near = dd; S = q; } }
+      function drawOutline(d) {
+        if (d < 0.3) { outline.style.visibility = 'hidden'; return; }
+        outline.style.visibility = 'visible';
+        outline.style.strokeDasharray = Math.min(d, ol).toFixed(2) + ' ' + Math.max(0.001, ol - d).toFixed(2);
+        outline.style.strokeDashoffset = (-S).toFixed(2);
+      }
+      drawOutline(0);
+      if (reduce) { rubG.setAttribute('opacity', 0); drawOutline(ol); fill.setAttribute('opacity', 1); glow.setAttribute('opacity', 1); return; }
+      var t0 = null, RUB = 1800, LOG = 2200;
+      function frame(ts) {
+        if (t0 === null) t0 = ts;
+        var t = ts - t0;
+        drawRub(rl * ease(Math.min(1, t / RUB)));
+        var lp = Math.max(0, Math.min(1, (t - RUB) / LOG));
+        drawOutline(ol * ease(lp));
+        rubG.setAttribute('opacity', (1 - lp).toFixed(3));
+        if (lp < 1) raf = requestAnimationFrame(frame);
+        else { fill.setAttribute('opacity', 1); glow.setAttribute('opacity', 1); }
+      }
+      raf = requestAnimationFrame(frame);
+    }
+    function go() { clearTimeout(loopTimer); run(); if (!reduce) loopTimer = setTimeout(function () { if (visible) go(); }, 10000); }
+    try {
+      new IntersectionObserver(function (e) {
+        var was = visible; visible = e[0].isIntersecting;
+        if (visible && !was) go();
+        if (!visible) clearTimeout(loopTimer);
+      }, { threshold: 0.3 }).observe(svg);
+    } catch (err) { go(); }
+  })();
+  (function () {
+    var bar = $('mbar'), inputsIn = false, resultIn = false;
+    function upd() { bar.hidden = !(inputsIn && !resultIn); }
+    bar.addEventListener('click', function (e) { e.preventDefault(); $('hero-num').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    try {
+      new IntersectionObserver(function (e) { inputsIn = e[0].isIntersecting; upd(); }).observe($('inputs'));
+      new IntersectionObserver(function (e) { resultIn = e[0].isIntersecting; upd(); }, { threshold: 0.3 }).observe($('hero-num'));
+    } catch (err) {   }
+  })();
+  syncAll(); render(); renderCoef();
+})();
+</script>
